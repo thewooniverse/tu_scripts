@@ -7,12 +7,10 @@ import datetime
 Assumptions:
 - Query already does the majority of column / row filtering ahead of time so that it is not neede in the script itself
 -- Also, such that the load on downloading files from AWS / Athena is lower.
+- In order for query to be accurate over 
 
 add sys.argv to export parsed columns and events;
-
-
-Refactor special events:
-- Add special event name column (so there's more context in liveops admin process)
+- csv filename;
 
 Add audit process for invited players / collusion:
 - The initial query CAN include inviterplayername/inviteruserid == whatever;
@@ -22,8 +20,8 @@ Add audit process for invited players / collusion:
 
 """
 # read the dataframes (later needs to be refactored to handle a directory full of files)
-df_path = f"{os.getcwd()}{os.path.sep}distal.csv"
-df = pd.read_csv('mewmew.csv')
+df_path = f"{os.getcwd()}{os.path.sep}a{os.path.sep}amed.csv"
+df = pd.read_csv(df_path)
 
 # select the relevant columns for cashouts in order / organization
 columns = ['time', 'type', 'username', 'userid', 'deviceid', 'istransaction',
@@ -85,6 +83,7 @@ money_from_livegames = livegame_results.sum()
 n_livegame_wins = livegame_df.loc[df['reason'] == 'win'].shape[0]
 n_livegames = livegame_df.shape[0]
 livegame_tpg = round(money_from_livegames/n_livegames,2)
+
 
 ## calculating take per game from matchup games;
 matchup_df = current_df.loc[
@@ -150,13 +149,13 @@ money_spent_on_tourneys = tournaments_spend_df['balancechange'].sum()
 
 
 ## calculate money from admin adding balance
-types = ['Awarded', 'AcknowledgeResult', 'GameEnd', 'ClaimGoalReward']
-
-non_gameplay_invite_df = current_df.loc[
-    (~current_df['type'].isin(types))
+admin_add_bal_df = current_df.loc[
+    (current_df['type'] == 'AdminAddBalance')
     &
-    (current_df['balancechange'] > 0)   
+    (current_df['istransaction'] == True)
 ]
+admin_added_balance = admin_add_bal_df['balancechange'].sum()
+
 
 
 
@@ -175,7 +174,14 @@ def calc_pct(indiv, group):
         return 0
 
 # check the balances
-total_won_calculated = money_from_megaspin + money_from_matchups + money_from_livegames + money_from_rewards + money_from_tourneys
+total_won_calculated = (money_from_megaspin + 
+                        money_from_matchups + 
+                        money_from_livegames + 
+                        money_from_rewards + 
+                        money_from_tourneys + money_spent_on_tourneys +
+                        admin_added_balance
+                        )
+
 cashout_value = cashouts['prevbalance'][0]
 username = cashouts['username'][0]
 note = "Invited players are hard to track down based on the way our database is currently written"
@@ -187,21 +193,22 @@ response_string = f"""
 Username: {username}
 Cashout Value: {cashout_value} 
 Audited Value: {total_won_calculated}
-Audit Date: {datetime.datetime.now().strftime("%d/%m/%Y %I:%M %p")}
+Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
 
 Revenue Source Breakdown: Amount = % of whole
 |- Mega Spins: {money_from_megaspin} = {calc_pct(money_from_megaspin, total_won_calculated)}%
 |- Live Games: {money_from_livegames} = {calc_pct(money_from_livegames, total_won_calculated)}%
 |- MatchUPs: {money_from_matchups} = {calc_pct(money_from_matchups, total_won_calculated)}%
 |- Goals: {money_from_rewards} = {calc_pct(money_from_rewards, total_won_calculated)}%
-|- Tournaments (won | spent): {money_from_tourneys} | {money_spent_on_tourneys} = {calc_pct((money_from_tourneys-money_spent_on_tourneys), total_won_calculated)}%
-|- Others (to be added) - AdminAddBalance, Tournament Win
+|- Tournaments (won|spent|net): {money_from_tourneys} | {money_spent_on_tourneys} {money_from_tourneys+money_spent_on_tourneys} = {calc_pct((money_from_tourneys+money_spent_on_tourneys), total_won_calculated)}%
+|- Admin added: {admin_added_balance} = {calc_pct(admin_added_balance, total_won_calculated)}
 
 --- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
 Livegame TPG: {livegame_tpg}
 MatchUP TPG: {matchup_tpg}
 Livegame winrate: {calc_pct(n_livegame_wins, n_livegames)} %
-MatchUP: {calc_pct(n_matchup_wins, n_matchups)}%
+MatchUP winrate: {calc_pct(n_matchup_wins, n_matchups)}%
 
 
 --- NOTES ---
@@ -215,17 +222,7 @@ MatchUP: {calc_pct(n_matchup_wins, n_matchups)}%
 # print(response_string)
 pyperclip.copy(response_string)
 
-
-
-
-
-
-# icebox
-# Most money won from: 
-# {top_3_sources}
-
-# Value mixed with invited players: 
-# |- Money from Tournaments: {money_from_tourneys} = {calc_pct(money_from_tourneys, total_won_calculated)}%
+print(current_df.iloc[-1])
 
 
 
@@ -233,26 +230,32 @@ pyperclip.copy(response_string)
 
 
 
+
+
+
+
+"""
 
 --- Overview ---
-Username: mewmew21
-Cashout Value: 1101.0 
-Audited Value: 1101.0
-Audit Date: 08/09/2023 11:15 AM
+Username: AMgudito23
+Cashout Value: 1120.0 
+Audited Value: 1122.0
+Audit Date: 2023/09/09 2023:55 AM
 
 Revenue Source Breakdown: Amount = % of whole
-|- Mega Spins: 0.0 = 0.0%
-|- Live Games: 997.0 = 91.0%
-|- MatchUPs: 0.0 = 0.0%
-|- Goals: 54.0 = 5.0%
-|- Tournaments (won | spent): 50.0 | 0.0 = 5.0%
-|- Others (to be added) - AdminAddBalance, Tournament Win
+|- Mega Spins: 50.0 = 4.0%
+|- Live Games: 1072.0 = 96.0%
+|- MatchUPs: -4.0 = -0.0%
+|- Goals: 4.0 = 0.0%
+|- Tournaments (won|spent|net): 0.0 | 0.0 0.0 = 0.0%
+|- Admin added: 0.0 = 0.0
 
 --- GamePlay Analysis ---
-Livegame TPG: 1.44
-MatchUP TPG: 0.0
-Livegame winrate: 67.0 %
-MatchUP: 0.0%
+Number of Games to Cashout (Total|Live|MatchUps): 250|248|2
+Livegame TPG: 4.32
+MatchUP TPG: -2.0
+Livegame winrate: 56.0 %
+MatchUP winrate: 0.0%
 
 
 --- NOTES ---
@@ -262,3 +265,5 @@ MatchUP: 0.0%
 - If the amount is not great, we can ignore it, however, if it is significant, this requires manual review.
 -- The discrepancies are most frequently from balance carreid into the cashout usually from tournament entry fees, admin adding balances and 
 -- In time, these will be accounted for;
+
+"""
