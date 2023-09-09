@@ -2,12 +2,21 @@ import pandas as pd
 import os
 import pyperclip
 import datetime
+import numpy as np
 
 """
 Assumptions:
-- Query already does the majority of column / row filtering ahead of time so that it is not neede in the script itself
--- Also, such that the load on downloading files from AWS / Athena is lower.
-- In order for query to be accurate over 
+- Current key in Athena query is username.
+- In order for query to be accurate over multiple name changes on the account level, the queries need to key off of userid instead of usernames
+----
+Multithreading:
+Performance upgrade to be able to audit multiple different accounts at once.
+This current script will likely need to be refactored, and there will need to be a wrapper script that calls this script in a multithreaded manner.
+
+V1 - is usable manually by adjusting simply the name of the target CSV file and locating it in the right directory.
+V2 - will use multithreading to target and process all CSVs placed in the relevant directory, cleanup and outputting a JSON file of all the relevant audits;
+V3 - will carry a auto-flagging system based on a historic dataset of all cashouts in the past.
+V4 - Refactoring / performance upgrades;
 
 add sys.argv to export parsed columns and events;
 - csv filename;
@@ -15,12 +24,9 @@ add sys.argv to export parsed columns and events;
 Add audit process for invited players / collusion:
 - The initial query CAN include inviterplayername/inviteruserid == whatever;
 - Then I extract out this data into another dataframe and then it can also be used for analysis afterwards;
-
-
-
 """
 # read the dataframes (later needs to be refactored to handle a directory full of files)
-df_path = f"{os.getcwd()}{os.path.sep}a{os.path.sep}amed.csv"
+df_path = f"{os.getcwd()}{os.path.sep}CSVs{os.path.sep}DLS_inviter.csv"
 df = pd.read_csv(df_path)
 
 # select the relevant columns for cashouts in order / organization
@@ -34,9 +40,17 @@ df = df[columns]
 str_parsed_columns = ', '.join(columns)
 # print(str_parsed_columns) # this line is used when I need to get the list of columns to rewrite the Athena / SQL query
 
+"""
+UPDATED AUDIT STRING:
+
+
+"""
+
+
 
 # clean the data such as to exclude the rows that are not of interest to me;
 excluded_events = ['ClientEvent', 'MakeMove','FindMatch', 'GoalProgress', 'EditUser', 'RankUp', 'SessionStart', 
+                   'IssueChallenge',
                    'CashOutStart', 'CashOutMismatch', 'CancelChallenge', 'CancelMatch']
 excluded_sql_str = f""
 for event in excluded_events:
@@ -47,6 +61,9 @@ df = df[~df['type'].isin(excluded_events)]
 # convert the time column to datetime and set it as index of the dataframe
 df['time'] = pd.to_datetime(df['time'])
 df.set_index('time', inplace=True)
+
+
+
 
 
 # get the cashout timestamps and isolate the dataframe into events from previous cashout (or start) to current cashout;
@@ -124,6 +141,16 @@ megaspin_df = current_df.loc[
 
 money_from_megaspin = megaspin_df['balancechange'].sum()
 
+## calculate money earned from invited players through gameplay (collusion)
+invited_players = list(current_df.loc[current_df['type'] == 'SetInviter', 'username'])
+games_against_invited_df = current_df.loc[current_df['opponentusername'].isin(invited_players)]
+invited_balance_change = games_against_invited_df['balancechange'].sum()
+invited_escrow_change = games_against_invited_df['escrowchange'].sum()
+invited_total = invited_balance_change + invited_escrow_change
+print(invited_total)
+
+
+
 
 ## calculate money from tournament activities
 tournament_wins_df = current_df.loc[
@@ -132,6 +159,7 @@ tournament_wins_df = current_df.loc[
     (current_df['istransaction'] == True) # this line excludes banana / secondary currency payouts
     ]
 money_from_tourneys = tournament_wins_df['balancechange'].sum()
+
 
 ## calculate the monies spent on tournament activities;
 tournaments_spend_df = current_df.loc[
@@ -142,12 +170,6 @@ tournaments_spend_df = current_df.loc[
 money_spent_on_tourneys = tournaments_spend_df['balancechange'].sum()
 
 
-
-
-
-
-
-
 ## calculate money from admin adding balance
 admin_add_bal_df = current_df.loc[
     (current_df['type'] == 'AdminAddBalance')
@@ -156,6 +178,19 @@ admin_add_bal_df = current_df.loc[
 ]
 admin_added_balance = admin_add_bal_df['balancechange'].sum()
 
+
+
+
+
+
+
+## other key numbers;
+number_of_cashouts = int(current_df.iloc[0]['count'])
+try_int = lambda x: int(x) if isinstance(x, (int, float)) and x > 0 else 0
+balance_carried_forward = try_int(current_df.iloc[0]['newescrow'])
+balance_carried_in = try_int(current_df.iloc[-1]['newescrow'])
+
+# balance_carried_forward = int(current_df.iloc[0]['newescrow'])
 
 
 
@@ -195,12 +230,18 @@ Cashout Value: {cashout_value}
 Audited Value: {total_won_calculated}
 Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
 
-Revenue Source Breakdown: Amount = % of whole
+Cashout Count: {number_of_cashouts}
+Amount carried in (escrow): {balance_carried_forward}
+Amount carreid forward (escrow): {balance_carried_in}
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
 |- Mega Spins: {money_from_megaspin} = {calc_pct(money_from_megaspin, total_won_calculated)}%
 |- Live Games: {money_from_livegames} = {calc_pct(money_from_livegames, total_won_calculated)}%
 |- MatchUPs: {money_from_matchups} = {calc_pct(money_from_matchups, total_won_calculated)}%
 |- Goals: {money_from_rewards} = {calc_pct(money_from_rewards, total_won_calculated)}%
-|- Tournaments (won|spent|net): {money_from_tourneys} | {money_spent_on_tourneys} {money_from_tourneys+money_spent_on_tourneys} = {calc_pct((money_from_tourneys+money_spent_on_tourneys), total_won_calculated)}%
+|- Tournaments (won|spent|net): {money_from_tourneys}|{money_spent_on_tourneys}|{money_from_tourneys+money_spent_on_tourneys} = {calc_pct((money_from_tourneys+money_spent_on_tourneys), total_won_calculated)}%
 |- Admin added: {admin_added_balance} = {calc_pct(admin_added_balance, total_won_calculated)}
 
 --- GamePlay Analysis ---
@@ -209,20 +250,19 @@ Livegame TPG: {livegame_tpg}
 MatchUP TPG: {matchup_tpg}
 Livegame winrate: {calc_pct(n_livegame_wins, n_livegames)} %
 MatchUP winrate: {calc_pct(n_matchup_wins, n_matchups)}%
-
+Money flow between invitees (amount|%): {invited_total}|{calc_pct(invited_total, total_won_calculated)}
 
 --- NOTES ---
-- {note}
-- All values in pennies
-- If value between Audited value != Cashout value, there may be some value unaccounted for;
-- If the amount is not great, we can ignore it, however, if it is significant, this requires manual review.
--- The discrepancies are most frequently from balance carreid into the cashout usually from tournament entry fees, admin adding balances and 
--- In time, these will be accounted for;
+{note}
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers
+-- If value is significant (10+%), then manual review / audits are required.
+-- Discrepancies may also exist for very old players who have been playing 
 """
 # print(response_string)
 pyperclip.copy(response_string)
-
-print(current_df.iloc[-1])
 
 
 
@@ -237,33 +277,40 @@ print(current_df.iloc[-1])
 """
 
 --- Overview ---
-Username: AMgudito23
-Cashout Value: 1120.0 
-Audited Value: 1122.0
-Audit Date: 2023/09/09 2023:55 AM
+Username: DLS151
+Cashout Value: 270349.0 
+Audited Value: 226256.0
+Audit Date: 2023/09/10 2023:36 AM
 
-Revenue Source Breakdown: Amount = % of whole
-|- Mega Spins: 50.0 = 4.0%
-|- Live Games: 1072.0 = 96.0%
-|- MatchUPs: -4.0 = -0.0%
-|- Goals: 4.0 = 0.0%
-|- Tournaments (won|spent|net): 0.0 | 0.0 0.0 = 0.0%
-|- Admin added: 0.0 = 0.0
+Cashout Count: 0
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 3150.0 = 1.0%
+|- Live Games: 211906.0 = 94.0%
+|- MatchUPs: 95.0 = 0.0%
+|- Goals: 238.0 = 0.0%
+|- Tournaments (won|spent|net): 50.0|-600.0|-550.0 = -0.0%
+|- Admin added: 11417.0 = 5.0
 
 --- GamePlay Analysis ---
-Number of Games to Cashout (Total|Live|MatchUps): 250|248|2
-Livegame TPG: 4.32
-MatchUP TPG: -2.0
-Livegame winrate: 56.0 %
+Number of Games to Cashout (Total|Live|MatchUps): 25166|24330|836
+Livegame TPG: 8.71
+MatchUP TPG: 0.11
+Livegame winrate: 63.0 %
 MatchUP winrate: 0.0%
-
+Money flow between invitees (amount|%): 16.0|0.0
 
 --- NOTES ---
-- Invited players are hard to track down based on the way our database is currently written
-- All values in pennies
-- If value between Audited value != Cashout value, there may be some value unaccounted for;
-- If the amount is not great, we can ignore it, however, if it is significant, this requires manual review.
--- The discrepancies are most frequently from balance carreid into the cashout usually from tournament entry fees, admin adding balances and 
--- In time, these will be accounted for;
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers
+-- If value is significant (10+%), then manual review / audits are required.
+-- Discrepancies may also exist for very old players who have been playing 
 
 """
