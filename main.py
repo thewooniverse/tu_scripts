@@ -26,7 +26,7 @@ Add audit process for invited players / collusion:
 - Then I extract out this data into another dataframe and then it can also be used for analysis afterwards;
 """
 # read the dataframes (later needs to be refactored to handle a directory full of files)
-df_path = f"{os.getcwd()}{os.path.sep}CSVs{os.path.sep}DLS_inviter.csv"
+df_path = f"{os.getcwd()}{os.path.sep}CSVs{os.path.sep}charot.csv"
 df = pd.read_csv(df_path)
 
 # select the relevant columns for cashouts in order / organization
@@ -119,8 +119,13 @@ games_df = current_df.loc[(current_df['type'] == 'AcknowledgeResult')
                           |
                           (current_df['type'] == 'GameEnd')
                           ]
-
-top_3_sources = games_df.groupby('opponentusername')['balancechange'].sum().sort_values(ascending=False)[0:3] # refactor this;
+games_df = games_df.copy()
+games_df.loc[:, 'results'] = games_df['balancechange'] + games_df['escrowchange']
+top_3_sources = games_df.groupby('opponentusername')['results'].sum().sort_values(ascending=False)[0:3] # refactor this;
+top3_dict = top_3_sources.to_dict()
+top3_str = ""
+for key,value in top3_dict.items():
+    top3_str += f"{key}: {value}\n"
 
 
 
@@ -147,7 +152,7 @@ games_against_invited_df = current_df.loc[current_df['opponentusername'].isin(in
 invited_balance_change = games_against_invited_df['balancechange'].sum()
 invited_escrow_change = games_against_invited_df['escrowchange'].sum()
 invited_total = invited_balance_change + invited_escrow_change
-print(invited_total)
+
 
 
 
@@ -251,6 +256,8 @@ MatchUP TPG: {matchup_tpg}
 Livegame winrate: {calc_pct(n_livegame_wins, n_livegames)} %
 MatchUP winrate: {calc_pct(n_matchup_wins, n_matchups)}%
 Money flow between invitees (amount|%): {invited_total}|{calc_pct(invited_total, total_won_calculated)}
+Top 3 players won against:
+{top3_str}
 
 --- NOTES ---
 {note}
@@ -277,10 +284,97 @@ pyperclip.copy(response_string)
 """
 
 --- Overview ---
+Username: CHAROT
+Cashout Value: 1313.0 
+Audited Value: 1313.0
+Audit Date: 2023/09/10 2023:52 AM
+
+Cashout Count: 13
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 0.0 = 0.0%
+|- Live Games: 1162.0 = 88.0%
+|- MatchUPs: 0.0 = 0.0%
+|- Goals: 51.0 = 4.0%
+|- Tournaments (won|spent|net): 100.0|0.0|100.0 = 8.0%
+|- Admin added: 0.0 = 0.0
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 383|356|27
+Livegame TPG: 3.26
+MatchUP TPG: 0.0
+Livegame winrate: 64.0 %
+MatchUP winrate: 0.0%
+Money flow between invitees (amount|%): 0.0|0.0
+Top 3 players won against:
+ran333: 48.0
+j0919001: 48.0
+oraora191919: 32.0
+
+
+--- NOTES ---
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers
+-- If value is significant (10+%), then manual review / audits are required.
+-- Discrepancies may also exist for very old players who have been playing 
+
+
+--- Overview ---
+Username: AMgudito23
+Cashout Value: 1120.0 
+Audited Value: 1122.0
+Audit Date: 2023/09/10 2023:51 AM
+
+Cashout Count: 2
+Amount carried in (escrow): 2
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 50.0 = 4.0%
+|- Live Games: 1072.0 = 96.0%
+|- MatchUPs: -4.0 = -0.0%
+|- Goals: 4.0 = 0.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 250|248|2
+Livegame TPG: 4.32
+MatchUP TPG: -2.0
+Livegame winrate: 56.0 %
+MatchUP winrate: 0.0%
+Money flow between invitees (amount|%): 0.0|0.0
+Top 3 players won against:
+pieke: 160.0
+Ma1220: 160.0
+ANN143: 96.0
+
+
+--- NOTES ---
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers
+-- If value is significant (10+%), then manual review / audits are required.
+-- Discrepancies may also exist for very old players who have been playing 
+
+
+
+--- Overview ---
 Username: DLS151
 Cashout Value: 270349.0 
 Audited Value: 226256.0
-Audit Date: 2023/09/10 2023:36 AM
+Audit Date: 2023/09/10 2023:48 AM
 
 Cashout Count: 0
 Amount carried in (escrow): 0
@@ -303,6 +397,11 @@ MatchUP TPG: 0.11
 Livegame winrate: 63.0 %
 MatchUP winrate: 0.0%
 Money flow between invitees (amount|%): 16.0|0.0
+Top 3 players won against:
+2373Nolan: 4576.0
+miriamgee: 2848.0
+DistalDave: 1600.0
+
 
 --- NOTES ---
 Invited players are hard to track down based on the way our database is currently written
