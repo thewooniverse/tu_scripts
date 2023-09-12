@@ -36,7 +36,11 @@ Add audit process for invited players / collusion:
 
 ## ensure that paths and files exist:
 csvs_path = f"{os.getcwd()}{os.path.sep}CSVs"
-name = sys.argv[1]
+if not os.path.exists(csvs_path):
+    os.mkdir(csvs_path)
+
+name = "DLS_inviter"
+
 df_path = f"{csvs_path}{os.path.sep}{name}.csv" # change this df_path variable
 df = pd.read_csv(df_path)
 
@@ -49,14 +53,6 @@ columns = ['time', 'type', 'username', 'userid', 'deviceid', 'istransaction',
           'usedpowerup',
           'iserror', 'percentage', 'cashamount', 'charityamount', 'count']
 df = df[columns]
-str_parsed_columns = ', '.join(columns)
-# print(str_parsed_columns) # this line is used when I need to get the list of columns to rewrite the Athena / SQL query
-
-"""
-UPDATED AUDIT STRING:
-
-
-"""
 
 
 
@@ -65,10 +61,17 @@ excluded_events = ['ClientEvent', 'MakeMove','FindMatch', 'GoalProgress', 'EditU
                    'CashOutStart', 'CashOutMismatch', 
                    'CancelChallenge', 'CancelMatch', 'AcceptChallenge', 'IssueChallenge']
 excluded_sql_str = f""
-for event in excluded_events:
-    excluded_sql_str+=f"AND type != \'{event}\'"
 
-df = df[~df['type'].isin(excluded_events)]
+# uncomment out block of code below, 6 lines to get the details to construct the athena audit
+
+# str_parsed_columns = ', '.join(columns)
+# print(str_parsed_columns) # this line is used when I need to get the list of columns to rewrite the Athena / SQL query
+# for event in excluded_events:
+#     excluded_sql_str+=f"AND type != \'{event}\'"
+# df = df[~df['type'].isin(excluded_events)]
+
+
+
 
 # convert the time column to datetime and set it as index of the dataframe
 df['time'] = pd.to_datetime(df['time'])
@@ -254,8 +257,8 @@ Username: {username}
 Cashout Value: {cashout_value} 
 Audited Value: {total_won_calculated}
 Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
-Cashout Date:
-Prev Cashout Date: 
+Cashout Date: {ts1}
+Prev Cashout Date: {ts2}
 
 Cashout Count: {number_of_cashouts}
 Amount carried in (escrow): {balance_carried_forward}
@@ -305,5 +308,55 @@ pyperclip.copy(response_string)
 
 
 """
+
+--- Overview ---
+Username: DLS151
+Cashout Value: 270349.0 
+Audited Value: 226361.0
+Audit Date: 2023/09/12 2023:27 PM
+Cashout Date: 2023-08-04 14:27:13.837000
+Prev Cashout Date: 2000-01-05 00:00:00
+
+Cashout Count: 0
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 3150.0 = 1.0%
+|- Live Games: 211906.0 = 94.0%
+|- MatchUPs: 95.0 = 0.0%
+|- Goals: 238.0 = 0.0%
+|- Tournaments (won|spent|net): 50.0|-600.0|-550.0 = -0.0%
+|- Admin added: 11417.0 = 5.0%
+|- Week1 prize(old): 105.0 = 0.0%
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 25166|24330|836
+Livegame TPG: 8.71
+MatchUP TPG: 0.11
+Livegame winrate: 63.0 %
+MatchUP winrate: 0.0%
+Money flow between invitees (amount|%): 16.0|0.0%
+Top 3 players won against:
+2373Nolan: 4576.0
+miriamgee: 2848.0
+DistalDave: 1600.0
+
+
+
+--- NOTES ---
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers (to add or subtract balances)
+-- Some old players may have gameplay history that is logged in a different way, these are not considered.
+-- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
+
+-- If value is significant (10+%), then manual review / audits are required.
+
 
 """
