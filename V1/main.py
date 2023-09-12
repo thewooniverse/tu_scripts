@@ -2,32 +2,44 @@ import pandas as pd
 import os
 import pyperclip
 import datetime
+import sys
 import numpy as np
 
 """
+NOTE:
+
 Assumptions:
 - Current key in Athena query is username.
 - In order for query to be accurate over multiple name changes on the account level, the queries need to key off of userid instead of usernames
 ----
 Multithreading:
+- csv username1 username2
+- csv -query
+
+
 Performance upgrade to be able to audit multiple different accounts at once.
 This current script will likely need to be refactored, and there will need to be a wrapper script that calls this script in a multithreaded manner.
 
-V1 - is usable manually by adjusting simply the name of the target CSV file and locating it in the right directory.
-V2 - will use multithreading to target and process all CSVs placed in the relevant directory, cleanup and outputting a JSON file of all the relevant audits;
-V3 - will carry a auto-flagging system based on a historic dataset of all cashouts in the past.
-V4 - Refactoring / performance upgrades;
-
 add sys.argv to export parsed columns and events;
-- csv filename;
+- csv username1 username2
+
+- csv -query
+
 
 Add audit process for invited players / collusion:
 - The initial query CAN include inviterplayername/inviteruserid == whatever;
 - Then I extract out this data into another dataframe and then it can also be used for analysis afterwards;
 """
-# read the dataframes (later needs to be refactored to handle a directory full of files)
-df_path = f"{os.getcwd()}{os.path.sep}CSVs{os.path.sep}charot.csv"
+
+
+# read the targeted dataframes (later needs to be refactored to handle a directory full of files)
+
+## ensure that paths and files exist:
+csvs_path = f"{os.getcwd()}{os.path.sep}CSVs"
+name = sys.argv[1]
+df_path = f"{csvs_path}{os.path.sep}{name}.csv" # change this df_path variable
 df = pd.read_csv(df_path)
+
 
 # select the relevant columns for cashouts in order / organization
 columns = ['time', 'type', 'username', 'userid', 'deviceid', 'istransaction',
@@ -50,8 +62,8 @@ UPDATED AUDIT STRING:
 
 # clean the data such as to exclude the rows that are not of interest to me;
 excluded_events = ['ClientEvent', 'MakeMove','FindMatch', 'GoalProgress', 'EditUser', 'RankUp', 'SessionStart', 
-                   'IssueChallenge',
-                   'CashOutStart', 'CashOutMismatch', 'CancelChallenge', 'CancelMatch']
+                   'CashOutStart', 'CashOutMismatch', 
+                   'CancelChallenge', 'CancelMatch', 'AcceptChallenge', 'IssueChallenge']
 excluded_sql_str = f""
 for event in excluded_events:
     excluded_sql_str+=f"AND type != \'{event}\'"
@@ -156,7 +168,6 @@ invited_total = invited_balance_change + invited_escrow_change
 
 
 
-
 ## calculate money from tournament activities
 tournament_wins_df = current_df.loc[
     (current_df['type'] == 'ClaimSpecialEventPrize')
@@ -183,6 +194,13 @@ admin_add_bal_df = current_df.loc[
 ]
 admin_added_balance = admin_add_bal_df['balancechange'].sum()
 
+## calculate money from tournament activities
+week1_df = current_df.loc[
+    (current_df['type'] == 'ClaimWeek1Prize')
+    &
+    (current_df['istransaction'] == True)]
+week1_total = week1_df['balancechange'].sum()
+
 
 
 
@@ -194,6 +212,8 @@ number_of_cashouts = int(current_df.iloc[0]['count'])
 try_int = lambda x: int(x) if isinstance(x, (int, float)) and x > 0 else 0
 balance_carried_forward = try_int(current_df.iloc[0]['newescrow'])
 balance_carried_in = try_int(current_df.iloc[-1]['newescrow'])
+current_df.iloc[0]
+
 
 # balance_carried_forward = int(current_df.iloc[0]['newescrow'])
 
@@ -217,7 +237,7 @@ def calc_pct(indiv, group):
 total_won_calculated = (money_from_megaspin + 
                         money_from_matchups + 
                         money_from_livegames + 
-                        money_from_rewards + 
+                        money_from_rewards + week1_total +
                         money_from_tourneys + money_spent_on_tourneys +
                         admin_added_balance
                         )
@@ -234,10 +254,13 @@ Username: {username}
 Cashout Value: {cashout_value} 
 Audited Value: {total_won_calculated}
 Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
+Cashout Date:
+Prev Cashout Date: 
 
 Cashout Count: {number_of_cashouts}
 Amount carried in (escrow): {balance_carried_forward}
 Amount carreid forward (escrow): {balance_carried_in}
+
 
 Revenue Source Breakdown: 
 |- Amount = % of total
@@ -247,7 +270,8 @@ Revenue Source Breakdown:
 |- MatchUPs: {money_from_matchups} = {calc_pct(money_from_matchups, total_won_calculated)}%
 |- Goals: {money_from_rewards} = {calc_pct(money_from_rewards, total_won_calculated)}%
 |- Tournaments (won|spent|net): {money_from_tourneys}|{money_spent_on_tourneys}|{money_from_tourneys+money_spent_on_tourneys} = {calc_pct((money_from_tourneys+money_spent_on_tourneys), total_won_calculated)}%
-|- Admin added: {admin_added_balance} = {calc_pct(admin_added_balance, total_won_calculated)}
+|- Admin added: {admin_added_balance} = {calc_pct(admin_added_balance, total_won_calculated)}%
+|- Week1 prize(old): {week1_total} = {calc_pct(week1_total, total_won_calculated)}%
 
 --- GamePlay Analysis ---
 Number of Games to Cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
@@ -255,18 +279,21 @@ Livegame TPG: {livegame_tpg}
 MatchUP TPG: {matchup_tpg}
 Livegame winrate: {calc_pct(n_livegame_wins, n_livegames)} %
 MatchUP winrate: {calc_pct(n_matchup_wins, n_matchups)}%
-Money flow between invitees (amount|%): {invited_total}|{calc_pct(invited_total, total_won_calculated)}
+Money flow between invitees (amount|%): {invited_total}|{calc_pct(invited_total, total_won_calculated)}%
 Top 3 players won against:
 {top3_str}
+
 
 --- NOTES ---
 {note}
 - All values in Pennies
 - IF Audited value != Cashout value, discrepancy may be caused by:
 -- Value of escrow carried in and out of cashouts
--- Direct manipulation of user data by engineers
+-- Direct manipulation of user data by engineers (to add or subtract balances)
+-- Some old players may have gameplay history that is logged in a different way, these are not considered.
+-- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
+
 -- If value is significant (10+%), then manual review / audits are required.
--- Discrepancies may also exist for very old players who have been playing 
 """
 # print(response_string)
 pyperclip.copy(response_string)
@@ -277,139 +304,6 @@ pyperclip.copy(response_string)
 
 
 
-
-
-
-
 """
-
---- Overview ---
-Username: CHAROT
-Cashout Value: 1313.0 
-Audited Value: 1313.0
-Audit Date: 2023/09/10 2023:52 AM
-
-Cashout Count: 13
-Amount carried in (escrow): 0
-Amount carreid forward (escrow): 0
-
-Revenue Source Breakdown: 
-|- Amount = % of total
-|-------------
-|- Mega Spins: 0.0 = 0.0%
-|- Live Games: 1162.0 = 88.0%
-|- MatchUPs: 0.0 = 0.0%
-|- Goals: 51.0 = 4.0%
-|- Tournaments (won|spent|net): 100.0|0.0|100.0 = 8.0%
-|- Admin added: 0.0 = 0.0
-
---- GamePlay Analysis ---
-Number of Games to Cashout (Total|Live|MatchUps): 383|356|27
-Livegame TPG: 3.26
-MatchUP TPG: 0.0
-Livegame winrate: 64.0 %
-MatchUP winrate: 0.0%
-Money flow between invitees (amount|%): 0.0|0.0
-Top 3 players won against:
-ran333: 48.0
-j0919001: 48.0
-oraora191919: 32.0
-
-
---- NOTES ---
-Invited players are hard to track down based on the way our database is currently written
-- All values in Pennies
-- IF Audited value != Cashout value, discrepancy may be caused by:
--- Value of escrow carried in and out of cashouts
--- Direct manipulation of user data by engineers
--- If value is significant (10+%), then manual review / audits are required.
--- Discrepancies may also exist for very old players who have been playing 
-
-
---- Overview ---
-Username: AMgudito23
-Cashout Value: 1120.0 
-Audited Value: 1122.0
-Audit Date: 2023/09/10 2023:51 AM
-
-Cashout Count: 2
-Amount carried in (escrow): 2
-Amount carreid forward (escrow): 0
-
-Revenue Source Breakdown: 
-|- Amount = % of total
-|-------------
-|- Mega Spins: 50.0 = 4.0%
-|- Live Games: 1072.0 = 96.0%
-|- MatchUPs: -4.0 = -0.0%
-|- Goals: 4.0 = 0.0%
-|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
-|- Admin added: 0.0 = 0.0
-
---- GamePlay Analysis ---
-Number of Games to Cashout (Total|Live|MatchUps): 250|248|2
-Livegame TPG: 4.32
-MatchUP TPG: -2.0
-Livegame winrate: 56.0 %
-MatchUP winrate: 0.0%
-Money flow between invitees (amount|%): 0.0|0.0
-Top 3 players won against:
-pieke: 160.0
-Ma1220: 160.0
-ANN143: 96.0
-
-
---- NOTES ---
-Invited players are hard to track down based on the way our database is currently written
-- All values in Pennies
-- IF Audited value != Cashout value, discrepancy may be caused by:
--- Value of escrow carried in and out of cashouts
--- Direct manipulation of user data by engineers
--- If value is significant (10+%), then manual review / audits are required.
--- Discrepancies may also exist for very old players who have been playing 
-
-
-
---- Overview ---
-Username: DLS151
-Cashout Value: 270349.0 
-Audited Value: 226256.0
-Audit Date: 2023/09/10 2023:48 AM
-
-Cashout Count: 0
-Amount carried in (escrow): 0
-Amount carreid forward (escrow): 0
-
-Revenue Source Breakdown: 
-|- Amount = % of total
-|-------------
-|- Mega Spins: 3150.0 = 1.0%
-|- Live Games: 211906.0 = 94.0%
-|- MatchUPs: 95.0 = 0.0%
-|- Goals: 238.0 = 0.0%
-|- Tournaments (won|spent|net): 50.0|-600.0|-550.0 = -0.0%
-|- Admin added: 11417.0 = 5.0
-
---- GamePlay Analysis ---
-Number of Games to Cashout (Total|Live|MatchUps): 25166|24330|836
-Livegame TPG: 8.71
-MatchUP TPG: 0.11
-Livegame winrate: 63.0 %
-MatchUP winrate: 0.0%
-Money flow between invitees (amount|%): 16.0|0.0
-Top 3 players won against:
-2373Nolan: 4576.0
-miriamgee: 2848.0
-DistalDave: 1600.0
-
-
---- NOTES ---
-Invited players are hard to track down based on the way our database is currently written
-- All values in Pennies
-- IF Audited value != Cashout value, discrepancy may be caused by:
--- Value of escrow carried in and out of cashouts
--- Direct manipulation of user data by engineers
--- If value is significant (10+%), then manual review / audits are required.
--- Discrepancies may also exist for very old players who have been playing 
 
 """
