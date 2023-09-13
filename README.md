@@ -21,7 +21,14 @@ V1 also has limitations on detecting device sharing, and it does not flag users 
 3. Run the script, and the outcome will be copied into the clipboard.
 
 Preparation:
-- Please use the Query provided within the script to query athena to get the relevant CSV downloaded from Athena;
+Your query file is located in current_query.txt for each version. Paste it into Athena and change the key to get the dataframe for the user that has cashed out.
+
+**NOTE:**
+The audit will only work properly if the user's full gameplay data is in athena.
+This means, we can begin auditing from the T-1 day of today;
+So if we are at 9/15/2023, we can audit up to 9/14/2023.
+
+
 
 ### V2
 

@@ -11,24 +11,8 @@ NOTE:
 Assumptions:
 - Current key in Athena query is username.
 - In order for query to be accurate over multiple name changes on the account level, the queries need to key off of userid instead of usernames
+- This can be done manually through Athena
 ----
-Multithreading:
-- csv username1 username2
-- csv -query
-
-
-Performance upgrade to be able to audit multiple different accounts at once.
-This current script will likely need to be refactored, and there will need to be a wrapper script that calls this script in a multithreaded manner.
-
-add sys.argv to export parsed columns and events;
-- csv username1 username2
-
-- csv -query
-
-
-Add audit process for invited players / collusion:
-- The initial query CAN include inviterplayername/inviteruserid == whatever;
-- Then I extract out this data into another dataframe and then it can also be used for analysis afterwards;
 """
 
 
@@ -39,9 +23,8 @@ csvs_path = f"{os.getcwd()}{os.path.sep}CSVs"
 if not os.path.exists(csvs_path):
     os.mkdir(csvs_path)
 
-name = "DLS_inviter"
-
-df_path = f"{csvs_path}{os.path.sep}{name}.csv" # change this df_path variable
+name = "DLS_inviter" # this is the name of the file and what you want to change in V1
+df_path = f"{csvs_path}{os.path.sep}{name}.csv"
 df = pd.read_csv(df_path)
 
 
@@ -62,7 +45,7 @@ excluded_events = ['ClientEvent', 'MakeMove','FindMatch', 'GoalProgress', 'EditU
                    'CancelChallenge', 'CancelMatch', 'AcceptChallenge', 'IssueChallenge']
 excluded_sql_str = f""
 
-# uncomment out block of code below, 6 lines to get the details to construct the athena audit
+
 
 # str_parsed_columns = ', '.join(columns)
 # print(str_parsed_columns) # this line is used when I need to get the list of columns to rewrite the Athena / SQL query
@@ -263,7 +246,6 @@ Prev Cashout Date: {ts2}
 Cashout Count: {number_of_cashouts}
 Amount carried in (escrow): {balance_carried_forward}
 Amount carreid forward (escrow): {balance_carried_in}
-
 
 Revenue Source Breakdown: 
 |- Amount = % of total
