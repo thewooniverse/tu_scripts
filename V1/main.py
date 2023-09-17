@@ -13,6 +13,10 @@ Assumptions:
 - In order for query to be accurate over multiple name changes on the account level, the queries need to key off of userid instead of usernames
 - This can be done manually through Athena
 ----
+
+TODO:
+1. Refactor the query script / exporting that into a file (overwriting)
+
 """
 
 
@@ -40,26 +44,46 @@ df = df[columns]
 
 
 # clean the data such as to exclude the rows that are not of interest to me;
-excluded_events = ['ClientEvent', 'MakeMove','FindMatch', 'GoalProgress', 'EditUser', 'RankUp', 'SessionStart', 
-                   'CashOutStart', 'CashOutMismatch', 
-                   'CancelChallenge', 'CancelMatch', 'AcceptChallenge', 'IssueChallenge']
+excluded_events = ['ClientEvent', 'MakeMove', 'GameBegin', 'AdStart', 
+                   'FindMatch', 'GoalProgress', 'EditUser', 'RankUp', 'SessionStart', 
+                   'CashOutStart', 'CashOutMismatch', 'AdFinish',
+                   'CancelChallenge', 'CancelMatch', 'AcceptChallenge', 'IssueChallenge', 'DeclineChallenge']
+
+
+
+
+
+# constructing the Athena query to current_query.txt
+str_parsed_columns = ', '.join(columns)
 excluded_sql_str = f""
+for event in excluded_events:
+    excluded_sql_str+=f"\nAND type != \'{event}\'"
+
+query_str = f"""
+/* GENERAL - CASHOUT AUDIT TABLE */
+/* Manual input variables marked between [brackets] - please input [USERNAME] [DEST_SERVER], remove the brackets after input */
+
+SELECT {str_parsed_columns}
+FROM [DEST_SERVER]
+WHERE (username = '[USERNAME]' OR inviterusername = '[USERNAME]')
+{excluded_sql_str}
+ORDER BY time DESC
+"""
+
+with open(f"{os.getcwd()}{os.path.sep}current_query.txt", 'w') as wf:
+    wf.write(query_str)
 
 
 
-# str_parsed_columns = ', '.join(columns)
-# print(str_parsed_columns) # this line is used when I need to get the list of columns to rewrite the Athena / SQL query
-# for event in excluded_events:
-#     excluded_sql_str+=f"AND type != \'{event}\'"
-# df = df[~df['type'].isin(excluded_events)]
 
 
 
+# ex lude the dataframe to exclude excluded events;
+df = df[~df['type'].isin(excluded_events)]
 
 # convert the time column to datetime and set it as index of the dataframe
 df['time'] = pd.to_datetime(df['time'])
 df.set_index('time', inplace=True)
-
 
 
 
