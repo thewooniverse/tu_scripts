@@ -15,7 +15,6 @@ Assumptions:
 ----
 
 TODO:
-1. Refactor the query script / exporting that into a file (overwriting)
 
 """
 
@@ -309,60 +308,3 @@ pyperclip.copy(response_string)
 
 
 
-
-
-
-
-"""
-
---- Overview ---
-Username: DLS151
-Cashout Value: 270349.0 
-Audited Value: 226361.0
-Audit Date: 2023/09/12 2023:27 PM
-Cashout Date: 2023-08-04 14:27:13.837000
-Prev Cashout Date: 2000-01-05 00:00:00
-
-Cashout Count: 0
-Amount carried in (escrow): 0
-Amount carreid forward (escrow): 0
-
-
-Revenue Source Breakdown: 
-|- Amount = % of total
-|-------------
-|- Mega Spins: 3150.0 = 1.0%
-|- Live Games: 211906.0 = 94.0%
-|- MatchUPs: 95.0 = 0.0%
-|- Goals: 238.0 = 0.0%
-|- Tournaments (won|spent|net): 50.0|-600.0|-550.0 = -0.0%
-|- Admin added: 11417.0 = 5.0%
-|- Week1 prize(old): 105.0 = 0.0%
-
---- GamePlay Analysis ---
-Number of Games to Cashout (Total|Live|MatchUps): 25166|24330|836
-Livegame TPG: 8.71
-MatchUP TPG: 0.11
-Livegame winrate: 63.0 %
-MatchUP winrate: 0.0%
-Money flow between invitees (amount|%): 16.0|0.0%
-Top 3 players won against:
-2373Nolan: 4576.0
-miriamgee: 2848.0
-DistalDave: 1600.0
-
-
-
---- NOTES ---
-Invited players are hard to track down based on the way our database is currently written
-- All values in Pennies
-- IF Audited value != Cashout value, discrepancy may be caused by:
--- Value of escrow carried in and out of cashouts
--- Direct manipulation of user data by engineers (to add or subtract balances)
--- Some old players may have gameplay history that is logged in a different way, these are not considered.
--- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
-
--- If value is significant (10+%), then manual review / audits are required.
-
-
-"""

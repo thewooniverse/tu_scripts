@@ -5,6 +5,8 @@ Cashout auditing scripts intended to automate and streamline this liveops proces
 V1 - is usable manually by adjusting simply the name of the target CSV file and locating it in the right directory.
 V2 - will use multithreading to target and process all CSVs placed in the relevant directory, cleanup and outputting an audit result.txt file with the username and date; into the same directory.
 
+
+
 V3 - will carry a auto-flagging and approving system based on a historic dataset of all cashouts in the past.
 V4 - Refactoring / performance upgrades;
 
@@ -13,12 +15,17 @@ V4 - Refactoring / performance upgrades;
 
 ### V1
 NOTE:
-V1 can only handle each CSV one by one, it cannot handle entire folders full of CSVs.
+V1 can only manually audit each CSV one by one, it cannot handle entire folders full of CSVs.
+It is intended to be a tool to accelerate and streamline the workflow and process for liveops staff.
 V1 also has limitations on detecting device sharing, and it does not flag users based on the outcome, it is up to the auditor / liveops team member to determine what the outcomes of the numbers mean.
 
-1. Add your CSV files from Athena into the CSVs folder in the V1 folder; CASHOUT_AUDITING/V1/CSVs
-2. Change the filename in the V1/main.py script to the file name of the CSV
-3. Run the script, and the outcome will be copied into the clipboard.
+Workflow in using V1 to run a basic audit on the cashout:
+
+1. Copy and past the V1/current_query.txt - changing the username / userid and other variables to match the cashout to be audited.
+2. Download the query result csv file, rename it to the relevant format (suggested: username_date) and add it to V1/CSVs
+3. 2. Change the filename in the V1/main.py script to the file name of the newly downloaded CSV
+4. Run the script, and the outcome will be copied into the clipboard. You may paste this onto the audit note of the cashouts tab in admin UI.
+
 
 Preparation:
 Your query file is located in current_query.txt for each version. Paste it into Athena and change the key to get the dataframe for the user that has cashed out.
@@ -30,7 +37,12 @@ So if we are at 9/15/2023, we can audit up to 9/14/2023.
 
 
 
+
 ### V2
+TODO:
+- Further auditing logic
+- Wrap everything in functions and enable multiprocessing
+
 
 
 
