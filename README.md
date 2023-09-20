@@ -13,8 +13,34 @@ V4 - Refactoring / performance upgrades;
 
 ## Usage per verison:
 
+
+
+
+### V2
+TODO:
+- Further auditing logic
+- Wrap everything in functions and enable multiprocessing
+
+
+#### USAGE:
+1. Download all the relevant CSV files using the audit query on Athena and putting them into the V2/CSVs folder.
+2. Run main.py, this will output a new txt file in V2/results/, with the date of the audit, containing all of the relevant audit notes.
+3. After the audits are complete, main.py cleans up the CSVs and moves them into a sub directory: /V2/CSVs/MM-DD-YYYY/
+
+#### NOTE:
+The process of downloading all of the CSV files should be done as a server side script that runs once a day, that queries and downloads all of the relevant CSV files for the cashed out players.
+
+
+
+
+
+
+
+
+
+
 ### V1
-NOTE:
+#### USAGE:
 V1 can only manually audit each CSV one by one, it cannot handle entire folders full of CSVs.
 It is intended to be a tool to accelerate and streamline the workflow and process for liveops staff.
 V1 also has limitations on detecting device sharing, and it does not flag users based on the outcome, it is up to the auditor / liveops team member to determine what the outcomes of the numbers mean.
@@ -30,7 +56,7 @@ Workflow in using V1 to run a basic audit on the cashout:
 Preparation:
 Your query file is located in current_query.txt for each version. Paste it into Athena and change the key to get the dataframe for the user that has cashed out.
 
-**NOTE:**
+#### NOTE:
 The audit will only work properly if the user's full gameplay data is in athena.
 This means, we can begin auditing from the T-1 day of today;
 So if we are at 9/15/2023, we can audit up to 9/14/2023.
@@ -38,10 +64,8 @@ So if we are at 9/15/2023, we can audit up to 9/14/2023.
 
 
 
-### V2
-TODO:
-- Further auditing logic
-- Wrap everything in functions and enable multiprocessing
+
+
 
 
 

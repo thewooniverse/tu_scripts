@@ -1,0 +1,26 @@
+
+/* GENERAL - CASHOUT AUDIT TABLE */
+/* Manual input variables marked between [brackets] - please input [USERNAME] [DEST_SERVER], remove the brackets after input */
+
+SELECT time, type, username, userid, deviceid, istransaction, gameid, gametype, level, isbot, reason, result, endstatus, opponentusername, prevbalance, newbalance, prevescrow, newescrow, balancechange, escrowchange, originalprizetype, awardedprizetype, awardedprizeamount, usedpowerup, iserror, percentage, cashamount, charityamount, count
+FROM [DEST_SERVER]
+WHERE (username = '[USERNAME]' OR inviterusername = '[USERNAME]')
+
+AND type != 'ClientEvent'
+AND type != 'MakeMove'
+AND type != 'GameBegin'
+AND type != 'AdStart'
+AND type != 'FindMatch'
+AND type != 'GoalProgress'
+AND type != 'EditUser'
+AND type != 'RankUp'
+AND type != 'SessionStart'
+AND type != 'CashOutStart'
+AND type != 'CashOutMismatch'
+AND type != 'AdFinish'
+AND type != 'CancelChallenge'
+AND type != 'CancelMatch'
+AND type != 'AcceptChallenge'
+AND type != 'IssueChallenge'
+AND type != 'DeclineChallenge'
+ORDER BY time DESC
