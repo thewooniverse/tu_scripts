@@ -6,7 +6,6 @@ SELECT time, type, username, userid, deviceid, istransaction, gameid, gametype, 
 FROM [DEST_SERVER]
 WHERE (username = '[USERNAME]' OR inviterusername = '[USERNAME]')
 
-
 AND type != 'ClientEvent'
 AND type != 'MakeMove'
 AND type != 'GameBegin'
@@ -24,5 +23,4 @@ AND type != 'CancelMatch'
 AND type != 'AcceptChallenge'
 AND type != 'IssueChallenge'
 AND type != 'DeclineChallenge'
-
 ORDER BY time DESC

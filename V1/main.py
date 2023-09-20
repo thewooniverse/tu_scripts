@@ -26,7 +26,7 @@ csvs_path = f"{os.getcwd()}{os.path.sep}CSVs"
 if not os.path.exists(csvs_path):
     os.mkdir(csvs_path)
 
-name = "DLS_inviter" # this is the name of the file and what you want to change in V1
+name = "bulk_data" # this is the name of the file and what you want to change in V1
 df_path = f"{csvs_path}{os.path.sep}{name}.csv"
 df = pd.read_csv(df_path)
 
@@ -97,10 +97,10 @@ if (len(cashouts)-1) != cashouts['count'][0]:
     cashouts.drop_duplicates(subset=['count'], inplace=True)
     # this needs to be tested as there were some errors in the past caused by faulty cashoutfinish events
 
-ts1 = cashouts.index[0] # current cashout
+ts1 = cashouts.index[4] # current cashout
 ts2 = pd.Timestamp('2000-01-05') # default timestamp 2 is super early (pre-dating the launch of the app itself), so it includes everything
 if len(cashouts) > 1:
-    ts2 = cashouts.index[1] # last cashout, if it exists;
+    ts2 = cashouts.index[5] # last cashout, if it exists;
 
 ## slice the df based on the two timestamps
 current_df = df.loc[ts1:ts2]
@@ -132,7 +132,13 @@ money_from_matchups = matchup_results.sum()
 
 n_matchup_wins = livegame_df.loc[df['result'] == 'win'].shape[0]
 n_matchups = matchup_df.shape[0]
-matchup_tpg = round(money_from_matchups/n_matchups,2)
+
+
+if (money_from_matchups == 0) or (n_matchups == 0):
+    matchup_tpg = 0
+else:
+    matchup_tpg = round(money_from_matchups/n_matchups,2)
+
 
 
 ## calculating revenue source by player;
@@ -166,6 +172,21 @@ megaspin_df = current_df.loc[
     (current_df['usedpowerup'] == 'TowerJump')]
 
 money_from_megaspin = megaspin_df['balancechange'].sum()
+
+
+non_jump_awards = current_df.loc[
+    (current_df['type'] == 'Awarded')
+    &
+    (current_df['usedpowerup'] != 'TowerJump')]
+
+money_from_awards = non_jump_awards['balancechange'].sum()
+
+
+
+
+
+
+
 
 ## calculate money earned from invited players through gameplay (collusion)
 invited_players = list(current_df.loc[current_df['type'] == 'SetInviter', 'username'])
@@ -248,7 +269,7 @@ total_won_calculated = (money_from_megaspin +
                         money_from_livegames + 
                         money_from_rewards + week1_total +
                         money_from_tourneys + money_spent_on_tourneys +
-                        admin_added_balance
+                        admin_added_balance + money_from_awards
                         )
 
 cashout_value = cashouts['prevbalance'][0]
@@ -280,6 +301,8 @@ Revenue Source Breakdown:
 |- Tournaments (won|spent|net): {money_from_tourneys}|{money_spent_on_tourneys}|{money_from_tourneys+money_spent_on_tourneys} = {calc_pct((money_from_tourneys+money_spent_on_tourneys), total_won_calculated)}%
 |- Admin added: {admin_added_balance} = {calc_pct(admin_added_balance, total_won_calculated)}%
 |- Week1 prize(old): {week1_total} = {calc_pct(week1_total, total_won_calculated)}%
+|- Awarded (misc): {money_from_awards} = {calc_pct(money_from_awards, total_won_calculated)}%
+
 
 --- GamePlay Analysis ---
 Number of Games to Cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
@@ -308,3 +331,332 @@ pyperclip.copy(response_string)
 
 
 
+
+
+
+
+
+"""
+
+--- Overview ---
+Username: wrickmon
+Cashout Value: 1000.0 
+Audited Value: 1010.0
+Audit Date: 2023/09/20 2023:51 PM
+Cashout Date: 2023-06-29 20:41:35.847000
+Prev Cashout Date: 2023-06-19 20:45:09.412000
+
+Cashout Count: 137
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 0.0 = 0.0%
+|- Live Games: 964.0 = 95.0%
+|- MatchUPs: 0.0 = 0.0%
+|- Goals: 41.0 = 4.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 5.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 409|408|1
+Livegame TPG: 2.36
+MatchUP TPG: 0
+Livegame winrate: 63.0 %
+MatchUP winrate: 0.0%
+Money flow between invitees (amount|%): 0.0|0.0%
+Top 3 players won against:
+DLS151: 128.0
+Plautus: 128.0
+goodstuff: 96.0
+
+
+
+--- NOTES ---
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers (to add or subtract balances)
+-- Some old players may have gameplay history that is logged in a different way, these are not considered.
+-- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
+
+-- If value is significant (10+%), then manual review / audits are required.
+
+
+
+
+--- Overview ---
+Username: wrickmon
+Cashout Value: 1000.0 
+Audited Value: 1005.0
+Audit Date: 2023/09/20 2023:08 PM
+Cashout Date: 2023-06-29 20:41:35.847000
+Prev Cashout Date: 2023-06-19 20:45:09.412000
+
+Cashout Count: 137
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 0.0 = 0.0%
+|- Live Games: 964.0 = 96.0%
+|- MatchUPs: 0.0 = 0.0%
+|- Goals: 41.0 = 4.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 5.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 409|408|1
+Livegame TPG: 2.36
+MatchUP TPG: 0
+Livegame winrate: 63.0 %
+MatchUP winrate: 0.0%
+Money flow between invitees (amount|%): 0.0|0.0%
+Top 3 players won against:
+DLS151: 128.0
+Plautus: 128.0
+goodstuff: 96.0
+
+
+
+--- NOTES ---
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers (to add or subtract balances)
+-- Some old players may have gameplay history that is logged in a different way, these are not considered.
+-- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
+
+-- If value is significant (10+%), then manual review / audits are required.
+
+
+
+
+
+
+
+--- Overview ---
+Username: wrickmon
+Cashout Value: 1000.0 
+Audited Value: 1008.0
+Audit Date: 2023/09/20 2023:07 PM
+Cashout Date: 2023-07-08 06:17:08.342000
+Prev Cashout Date: 2023-06-29 20:41:35.847000
+
+Cashout Count: 138
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 0.0 = 0.0%
+|- Live Games: 886.0 = 88.0%
+|- MatchUPs: 0.0 = 0.0%
+|- Goals: 122.0 = 12.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 0.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 730|729|1
+Livegame TPG: 1.22
+MatchUP TPG: 0
+Livegame winrate: 59.0 %
+MatchUP winrate: 0.0%
+Money flow between invitees (amount|%): 0.0|0.0%
+Top 3 players won against:
+Paul007: 160.0
+2373Nolan: 160.0
+angieb1229: 128.0
+
+
+
+--- NOTES ---
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers (to add or subtract balances)
+-- Some old players may have gameplay history that is logged in a different way, these are not considered.
+-- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
+
+-- If value is significant (10+%), then manual review / audits are required.
+
+
+
+
+--- Overview ---
+Username: wrickmon
+Cashout Value: 1000.0 
+Audited Value: 1001.0
+Audit Date: 2023/09/20 2023:04 PM
+Cashout Date: 2023-07-14 01:52:00.241000
+Prev Cashout Date: 2023-07-08 06:17:08.342000
+
+Cashout Count: 139
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 0.0 = 0.0%
+|- Live Games: 972.0 = 97.0%
+|- MatchUPs: 0.0 = 0.0%
+|- Goals: 29.0 = 3.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 0.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 153|153|0
+Livegame TPG: 6.35
+MatchUP TPG: nan
+Livegame winrate: 56.0 %
+MatchUP winrate: 0%
+Money flow between invitees (amount|%): 0.0|0.0%
+Top 3 players won against:
+2373Nolan: 288.0
+Gigi1380: 192.0
+navjotneol: 160.0
+
+
+
+--- NOTES ---
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers (to add or subtract balances)
+-- Some old players may have gameplay history that is logged in a different way, these are not considered.
+-- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
+
+-- If value is significant (10+%), then manual review / audits are required.
+
+
+--- Overview ---
+Username: wrickmon
+Cashout Value: 1000.0 
+Audited Value: 1001.0
+Audit Date: 2023/09/20 2023:04 PM
+Cashout Date: 2023-07-27 02:37:27.404000
+Prev Cashout Date: 2023-07-14 01:52:00.241000
+
+Cashout Count: 140
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 0.0 = 0.0%
+|- Live Games: 971.0 = 97.0%
+|- MatchUPs: 0.0 = 0.0%
+|- Goals: 30.0 = 3.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 0.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 163|163|0
+Livegame TPG: 5.96
+MatchUP TPG: nan
+Livegame winrate: 65.0 %
+MatchUP winrate: 0%
+Money flow between invitees (amount|%): 0.0|0.0%
+Top 3 players won against:
+MorrWheat: 128.0
+SuperDad: 128.0
+nawar: 128.0
+
+
+
+--- NOTES ---
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers (to add or subtract balances)
+-- Some old players may have gameplay history that is logged in a different way, these are not considered.
+-- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
+
+-- If value is significant (10+%), then manual review / audits are required.
+
+
+
+
+
+--- Overview ---
+Username: wrickmon
+Cashout Value: 1000.0 
+Audited Value: 1000.0
+Audit Date: 2023/09/20 2023:03 PM
+Cashout Date: 2023-08-17 02:56:23.569000
+Prev Cashout Date: 2023-07-27 02:37:27.404000
+
+Cashout Count: 141
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown: 
+|- Amount = % of total
+|-------------
+|- Mega Spins: 75.0 = 8.0%
+|- Live Games: 815.0 = 82.0%
+|- MatchUPs: 0.0 = 0.0%
+|- Goals: 110.0 = 11.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 0.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 1009|1008|1
+Livegame TPG: 0.81
+MatchUP TPG: 0.0
+Livegame winrate: 60.0 %
+MatchUP winrate: 0.0%
+Money flow between invitees (amount|%): 0.0|0.0%
+Top 3 players won against:
+OgGamer77: 170.0
+Daniel193: 144.0
+taxon: 128.0
+
+
+
+--- NOTES ---
+Invited players are hard to track down based on the way our database is currently written
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers (to add or subtract balances)
+-- Some old players may have gameplay history that is logged in a different way, these are not considered.
+-- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
+
+-- If value is significant (10+%), then manual review / audits are required.
+
+
+
+
+
+"""
