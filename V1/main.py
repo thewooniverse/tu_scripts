@@ -130,7 +130,7 @@ matchup_df = current_df.loc[
 matchup_results = matchup_df['balancechange'] + matchup_df['escrowchange']
 money_from_matchups = matchup_results.sum()
 
-n_matchup_wins = livegame_df.loc[df['result'] == 'win'].shape[0]
+n_matchup_wins = matchup_df.loc[df['result'] == 'win'].shape[0]
 n_matchups = matchup_df.shape[0]
 
 
@@ -182,6 +182,15 @@ non_jump_awards = current_df.loc[
 money_from_awards = non_jump_awards['balancechange'].sum()
 
 
+## calculate money from week1 activities
+week1_df = current_df.loc[
+    (current_df['type'] == 'ClaimWeek1Prize')
+    &
+    (current_df['istransaction'] == True)]
+week1_total = week1_df['balancechange'].sum()
+
+
+
 
 
 
@@ -224,13 +233,6 @@ admin_add_bal_df = current_df.loc[
 ]
 admin_added_balance = admin_add_bal_df['balancechange'].sum()
 
-## calculate money from tournament activities
-week1_df = current_df.loc[
-    (current_df['type'] == 'ClaimWeek1Prize')
-    &
-    (current_df['istransaction'] == True)]
-week1_total = week1_df['balancechange'].sum()
-
 
 
 
@@ -242,9 +244,6 @@ number_of_cashouts = int(current_df.iloc[0]['count'])
 try_int = lambda x: int(x) if isinstance(x, (int, float)) and x > 0 else 0
 balance_carried_forward = try_int(current_df.iloc[0]['newescrow'])
 balance_carried_in = try_int(current_df.iloc[-1]['newescrow'])
-current_df.iloc[0]
-
-
 # balance_carried_forward = int(current_df.iloc[0]['newescrow'])
 
 
@@ -274,8 +273,6 @@ total_won_calculated = (money_from_megaspin +
 
 cashout_value = cashouts['prevbalance'].iloc[0]
 username = cashouts['username'].iloc[0]
-note = "Invited players are hard to track down based on the way our database is currently written"
-
 
 # construct the response string
 response_string = f"""
@@ -291,7 +288,7 @@ Cashout Count: {number_of_cashouts}
 Amount carried in (escrow): {balance_carried_forward}
 Amount carreid forward (escrow): {balance_carried_in}
 
-Revenue Source Breakdown: 
+Revenue Source Breakdown:
 |- Amount = % of total
 |-------------
 |- Mega Spins: {money_from_megaspin} = {calc_pct(money_from_megaspin, total_won_calculated)}%
@@ -316,7 +313,6 @@ Top 3 players won against:
 
 
 --- NOTES ---
-{note}
 - All values in Pennies
 - IF Audited value != Cashout value, discrepancy may be caused by:
 -- Value of escrow carried in and out of cashouts
