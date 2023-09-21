@@ -49,7 +49,9 @@ Workflow in using V1 to run a basic audit on the cashout:
 
 1. Copy and past the V1/current_query.txt - changing the username / userid and other variables to match the cashout to be audited.
 2. Download the query result csv file, rename it to the relevant format (suggested: username_date) and add it to V1/CSVs
-3. 2. Change the filename in the V1/main.py script to the file name of the newly downloaded CSV
+3. Change the "name" variable in the V1/main.py script to the file name of the newly downloaded CSV - currently this is line 29, by default set to:
+name = "wrickmon_9192023" # this is the name of the file and what you want to change in V1
+
 4. Run the script, and the outcome will be copied into the clipboard. You may paste this onto the audit note of the cashouts tab in admin UI.
 
 
