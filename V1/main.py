@@ -26,7 +26,7 @@ csvs_path = f"{os.getcwd()}{os.path.sep}CSVs"
 if not os.path.exists(csvs_path):
     os.mkdir(csvs_path)
 
-name = "wrickmon_9192023" # this is the name of the file and what you want to change in V1
+name = "distal_real" # this is the name of the file and what you want to change in V1
 df_path = f"{csvs_path}{os.path.sep}{name}.csv"
 df = pd.read_csv(df_path, low_memory=False)
 
