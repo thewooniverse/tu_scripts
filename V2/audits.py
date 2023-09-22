@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import datetime
 
 
 
@@ -28,11 +29,13 @@ def audit(dataframe):
 
     Returns: text string with the audit notes for given player's most recent cashout.
     """
-    # prase and clean up the dataframe for processing
+    # prase and clean up the dataframe for processing, reset the indexes
     dataframe = filter_and_order(dataframe)
+    dataframe['time'] = pd.to_datetime(dataframe['time'])
+    dataframe.set_index('time', inplace=True)
 
     ## get the cashouts dataframe that contains all events for the given timestamps between this cashout, and last cashout.
-    cashout_dataframe = get_cashout_events(dataframe)
+    cashout_dataframe, ts1, ts2, cashout_value, username = get_cashout_events(dataframe)
 
     # get the key values from various calculation functions
     ## calculate livegame data
@@ -41,25 +44,66 @@ def audit(dataframe):
     ## calculate matchup data
     money_from_matchups, n_matchups, n_matchup_wins, matchup_tpg, matchup_winrate = calc_matchup_numbers(cashout_dataframe)
 
-    ## calculate top revenue source (opponents)
+    ## calculate top revenue source (opponents & invited players)
     top3_players = calc_opponent_numbers(cashout_dataframe)
+    invited_players, invited_total = calc_invited_gameplay_numbers(cashout_dataframe)
 
     ## calculate amounts from tournament activities
-
+    money_from_tourneys, money_spent_on_tourneys, total_flow_tourneys = calc_tournament_outcomes(cashout_dataframe)
 
     ## calculate amounts from in-game incentives - goals, mega spins, achievements, week1 prizes:
-    money_from_goals, money_from_megaspins, money_from_awards, money_from_week1 = calc_goals_and_awards(cashout_dataframe)
+    money_from_goals, money_from_megaspins, money_from_awards, money_from_week1, money_from_admin = calc_goals_and_awards(cashout_dataframe)
 
-    ## calculate amount from admin adding balance;
-    
 
     # get other key values from given dataframe
     number_of_cashouts = int(cashout_dataframe.iloc[0]['count'])
     try_int = lambda x: int(x) if isinstance(x, (int, float)) and x > 0 else 0
     balance_carried_forward = try_int(cashout_dataframe.iloc[0]['newescrow'])
     balance_carried_in = try_int(cashout_dataframe.iloc[-1]['newescrow']) # << test this out with cashouts where I know there is some
+    total_audited_value = money_from_livegames + money_from_matchups + total_flow_tourneys + money_from_goals + money_from_megaspins + money_from_awards + money_from_week1 + money_from_admin
 
     # construct the string and return the string
+    response_string = f"""
+---OVERVIEW---
+Username: {username}
+Cashout Value: {cashout_value} 
+Audited Value: {total_audited_value}
+Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
+Cashout Date: {ts1}
+Prev Cashout Date: {ts2}
+
+Cashout Count: {number_of_cashouts}
+Amount carried in (escrow): {balance_carried_forward}
+Amount carreid forward (escrow): {balance_carried_in}
+
+Revenue Source Breakdown:
+|- Amount = % of total
+|-------------
+|- Mega Spins: {money_from_megaspins} = {calc_pct(money_from_megaspins, total_audited_value)}%
+|- Live Games: {money_from_livegames} = {calc_pct(money_from_livegames, total_audited_value)}%
+|- MatchUPs: {money_from_matchups} = {calc_pct(money_from_matchups, total_audited_value)}%
+|- Goals: {money_from_goals} = {calc_pct(money_from_goals, total_audited_value)}%
+|- Tournaments (won|spent|net): {money_from_tourneys}|{money_spent_on_tourneys}|{total_flow_tourneys} = {calc_pct(total_flow_tourneys, total_audited_value)}%
+|- Admin added: {money_from_admin} = {calc_pct(money_from_admin, total_audited_value)}%
+|- Week1 prize(old): {money_from_week1} = {calc_pct(money_from_week1, total_audited_value)}%
+|- Awarded (misc): {money_from_awards} = {calc_pct(money_from_awards, total_audited_value)}%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
+Livegame TPG: {livegame_tpg}
+MatchUP TPG: {matchup_tpg}
+Livegame winrate: {calc_pct(n_livegame_wins, n_livegames)} %
+MatchUP winrate: {calc_pct(n_matchup_wins, n_matchups)}%
+Top 3 players won against:
+{calc_opponent_numbers(cashout_dataframe)}
+
+Invited Players: {invited_players}
+Money flow between invitees (amount|%): {invited_total}|{calc_pct(invited_total, total_audited_value)}%
+"""
+    return response_string
+
+
 
 
 
@@ -91,12 +135,15 @@ def get_cashout_events(dataframe):
 
     # slice the dataframe based on the timestamps
     ts1 = cashouts.index[0] # current cashout
-    ts2 = pd.Timestamp('2000-01-05') # default timestamp 2 is super early (pre-dating the launch of the app itself), so it includes everything
     if len(cashouts) > 1:
         ts2 = cashouts.index[1] # last cashout, if it exists;
+    else:
+        ts2 = pd.Timestamp('2000-01-05') # default timestamp 2 is super early (pre-dating the launch of the app itself), so it includes everything
     current_df = dataframe.loc[ts1:ts2]
+    cashout_value = cashouts['prevbalance'].iloc[0]
+    username = cashouts['username'].iloc[0]
     
-    return current_df
+    return current_df, ts1, ts2, cashout_value, username
 
 
 
@@ -184,6 +231,23 @@ def calc_opponent_numbers(dataframe):
 
     return top3_str
 
+def calc_invited_gameplay_numbers(dataframe):
+    """
+    calc_opponent_numbers(dataframe) - takes a dataframe containing events for a cashout
+    and returns a list of key values regarding who the given player has won the most amount of money from
+
+    returns: top x players in string format
+    """
+    invited_players = list(dataframe.loc[dataframe['type'] == 'SetInviter', 'username'])
+    games_against_invited_df = dataframe.loc[dataframe['opponentusername'].isin(invited_players)]
+    invited_balance_change = games_against_invited_df['balancechange'].sum()
+    invited_escrow_change = games_against_invited_df['escrowchange'].sum()
+    invited_total = invited_balance_change + invited_escrow_change
+
+    return invited_players, invited_total
+
+
+
 
 def calc_goals_and_awards(dataframe):
     """
@@ -225,8 +289,46 @@ def calc_goals_and_awards(dataframe):
     
     money_from_week1 = week1_df['balancechange'].sum()
 
-    return money_from_goals, money_from_megaspins, money_from_awards, money_from_week1
+    # calculate admin adding balance
+    admin_add_bal_df = dataframe.loc[
+        (dataframe['type'] == 'AdminAddBalance')
+        &
+        (dataframe['istransaction'] == True)]
+    admin_added_balance = admin_add_bal_df['balancechange'].sum()
 
+
+    return money_from_goals, money_from_megaspins, money_from_awards, money_from_week1, admin_added_balance
+
+
+def calc_tournament_outcomes(dataframe):
+    """
+    calc_tournament_outcomes(dataframe) - takes a dataframe containing events for a cashout
+    and returns list of key values regarding tournament activity
+    
+    returns: money_from_tourneys, money_spent_on_tourneys, total_flow_tourneys    
+    """
+    ## calculate money from tournament activities
+    tournament_wins_df = dataframe.loc[
+        (dataframe['type'] == 'ClaimSpecialEventPrize')
+        &
+        (dataframe['istransaction'] == True) # this line excludes banana / secondary currency payouts
+        ]
+    money_from_tourneys = tournament_wins_df['balancechange'].sum()
+
+
+    ## calculate the monies spent on tournament activities;
+    tournaments_spend_df = dataframe.loc[
+        (dataframe['type'] == 'JoinSpecialEvent')
+        &
+        (dataframe['istransaction'] == True)
+    ]
+    money_spent_on_tourneys = tournaments_spend_df['balancechange'].sum()
+
+    ## calculate the net flow
+    total_flow_tourneys = money_from_tourneys + money_spent_on_tourneys
+
+    return money_from_tourneys, money_spent_on_tourneys, total_flow_tourneys
+    
 
 
 
@@ -264,7 +366,12 @@ def calc_goals_and_awards(dataframe):
 
 # basic testing of the calculations on a test CSV file
 if __name__ == '__main__':
-    print("ABC")
+    script_path = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1])
+
+    test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "madjx_colluder.csv"
+    test_data = pd.read_csv(test_path)
+    print(audit(test_data))
+
 
 
 
