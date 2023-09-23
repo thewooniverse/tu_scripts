@@ -63,7 +63,7 @@ def audit(dataframe):
     total_audited_value = money_from_livegames + money_from_matchups + total_flow_tourneys + money_from_goals + money_from_megaspins + money_from_awards + money_from_week1 + money_from_admin
 
     # construct the string and return the string
-    response_string = f"""
+    response_string = f"""\n\n
 ---OVERVIEW---
 Username: {username}
 Cashout Value: {cashout_value} 
@@ -99,7 +99,7 @@ Top 3 players won against:
 {calc_opponent_numbers(cashout_dataframe)}
 
 Invited Players: {invited_players}
-Money flow between invitees (amount|%): {invited_total}|{calc_pct(invited_total, total_audited_value)}%
+Money flow between invitees (amount|%): {invited_total}|{calc_pct(invited_total, total_audited_value)}%\n\n
 """
     return response_string
 
@@ -356,19 +356,11 @@ def calc_tournament_outcomes(dataframe):
 
 
 
-
-
-
-
-
-
-
-
 # basic testing of the calculations on a test CSV file
 if __name__ == '__main__':
     script_path = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1])
 
-    test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "madjx_colluder.csv"
+    test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "leo_colluder.csv"
     test_data = pd.read_csv(test_path)
     print(audit(test_data))
 

@@ -1,0 +1,222 @@
+AUDIT DATE: 2023/09/23 2023:53 PM
+---------------
+
+
+
+---OVERVIEW---
+Username: leo98764
+Cashout Value: 1614.0 
+Audited Value: 1424.0
+Audit Date: 2023/09/23 2023:53 PM
+Cashout Date: 2023-06-22 16:42:43.672000
+Prev Cashout Date: 2000-01-05 00:00:00
+
+Cashout Count: 0
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown:
+|- Amount = % of total
+|-------------
+|- Mega Spins: 300.0 = 21.0%
+|- Live Games: -209.0 = -15.0%
+|- MatchUPs: 1312.0 = 92.0%
+|- Goals: 0.0 = 0.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 13.0 = 1.0%
+|- Awarded (misc): 8.0 = 1.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 439|411|28
+Livegame TPG: -0.51
+MatchUP TPG: 46.86
+Livegame winrate: 53.0 %
+MatchUP winrate: 54.0%
+Top 3 players won against:
+haidar1: 864.0
+mk363835: 176.0
+mo98707: 96.0
+
+
+Invited Players: ['mo98707', 'mk363835', 'hoda', 'pop753', 'pop2538', 'john99999', 'Flow83', 'Flow1', 'leen999']
+Money flow between invitees (amount|%): 464.0|33.0%
+
+
+
+
+
+---OVERVIEW---
+Username: AMgudito23
+Cashout Value: 1120.0 
+Audited Value: 1122.0
+Audit Date: 2023/09/23 2023:53 PM
+Cashout Date: 2023-08-30 11:44:02.450000
+Prev Cashout Date: 2023-08-29 12:35:30.410000
+
+Cashout Count: 2
+Amount carried in (escrow): 2
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown:
+|- Amount = % of total
+|-------------
+|- Mega Spins: 50.0 = 4.0%
+|- Live Games: 1072.0 = 96.0%
+|- MatchUPs: -4.0 = -0.0%
+|- Goals: 4.0 = 0.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 0.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 250|248|2
+Livegame TPG: 4.32
+MatchUP TPG: -2.0
+Livegame winrate: 56.0 %
+MatchUP winrate: 50.0%
+Top 3 players won against:
+pieke: 160.0
+Ma1220: 160.0
+ANN143: 96.0
+
+
+Invited Players: []
+Money flow between invitees (amount|%): 0.0|0.0%
+
+
+
+
+
+---OVERVIEW---
+Username: DistalDave
+Cashout Value: 7210.0 
+Audited Value: 7139.0
+Audit Date: 2023/09/23 2023:53 PM
+Cashout Date: 2023-08-30 00:32:40.461000
+Prev Cashout Date: 2023-06-19 02:55:57.622000
+
+Cashout Count: 13
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown:
+|- Amount = % of total
+|-------------
+|- Mega Spins: 200.0 = 3.0%
+|- Live Games: 8940.0 = 125.0%
+|- MatchUPs: -2478.0 = -35.0%
+|- Goals: 422.0 = 6.0%
+|- Tournaments (won|spent|net): 150.0|-100.0|50.0 = 1.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 5.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 2658|2468|190
+Livegame TPG: 3.62
+MatchUP TPG: -13.04
+Livegame winrate: 53.0 %
+MatchUP winrate: 61.0%
+Top 3 players won against:
+furry: 1792.0
+Awoo: 1280.0
+pkcklk: 1184.0
+
+
+Invited Players: []
+Money flow between invitees (amount|%): 0.0|0.0%
+
+
+
+
+
+---OVERVIEW---
+Username: DLS151
+Cashout Value: 270349.0 
+Audited Value: 226361.0
+Audit Date: 2023/09/23 2023:53 PM
+Cashout Date: 2023-08-04 14:27:13.837000
+Prev Cashout Date: 2000-01-05 00:00:00
+
+Cashout Count: 0
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown:
+|- Amount = % of total
+|-------------
+|- Mega Spins: 3150.0 = 1.0%
+|- Live Games: 211906.0 = 94.0%
+|- MatchUPs: 95.0 = 0.0%
+|- Goals: 238.0 = 0.0%
+|- Tournaments (won|spent|net): 50.0|-600.0|-550.0 = -0.0%
+|- Admin added: 11417.0 = 5.0%
+|- Week1 prize(old): 105.0 = 0.0%
+|- Awarded (misc): 0.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 25166|24330|836
+Livegame TPG: 8.71
+MatchUP TPG: 0.11
+Livegame winrate: 63.0 %
+MatchUP winrate: 74.0%
+Top 3 players won against:
+2373Nolan: 4576.0
+miriamgee: 2848.0
+DistalDave: 1600.0
+
+
+Invited Players: ['chiofsteel', 'm0neym4n', 'Ruuhroh', 'AMSteel', 'DLS151']
+Money flow between invitees (amount|%): 16.0|0.0%
+
+
+
+
+
+---OVERVIEW---
+Username: 2373Nolan
+Cashout Value: 6452.0 
+Audited Value: 6542.0
+Audit Date: 2023/09/23 2023:53 PM
+Cashout Date: 2023-08-30 05:07:26.644000
+Prev Cashout Date: 2023-07-02 12:11:04.568000
+
+Cashout Count: 20
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown:
+|- Amount = % of total
+|-------------
+|- Mega Spins: 50.0 = 1.0%
+|- Live Games: 5232.0 = 80.0%
+|- MatchUPs: 582.0 = 9.0%
+|- Goals: 773.0 = 12.0%
+|- Tournaments (won|spent|net): 5.0|-100.0|-95.0 = -1.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 0.0 = 0.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 11682|11506|176
+Livegame TPG: 0.45
+MatchUP TPG: 3.31
+Livegame winrate: 56.0 %
+MatchUP winrate: 65.0%
+Top 3 players won against:
+Abhai_98: 1472.0
+JeremyTR93: 1280.0
+kerrysze: 936.0
+
+
+Invited Players: []
+Money flow between invitees (amount|%): 0.0|0.0%
+
+
