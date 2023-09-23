@@ -4,7 +4,7 @@ import pandas as pd
 import os
 from threading import Thread, Lock
 from pathlib import Path
-
+import shutil
 
 
 # main.py for V2 will be importing the calculations from audits.py
@@ -74,4 +74,7 @@ with open(result_path, 'w') as wf:
     wf.write(response_string)
 
 # cleanup for CSVs folder;
-
+for org_path in csv_paths:
+    filename = org_path.split(os.path.sep)[-1]
+    dest_path = csvs_path+os.path.sep+"audited_CSVs"+os.path.sep+filename
+    shutil.move(org_path, dest_path)
