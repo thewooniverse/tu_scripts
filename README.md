@@ -17,15 +17,18 @@ V4 - Refactoring / performance upgrades;
 
 
 ### V2
-TODO:
-- Further auditing logic
-- Wrap everything in functions and enable multiprocessing
-
 
 #### USAGE:
 1. Download all the relevant CSV files using the audit query on Athena and putting them into the V2/CSVs folder.
-2. Run main.py, this will output a new txt file in V2/results/, with the date of the audit, containing all of the relevant audit notes.
-3. After the audits are complete, main.py cleans up the CSVs and moves them into a sub directory: /V2/CSVs/MM-DD-YYYY/
+1. a. Alternatively, have a server side script that queries, downloads and saves CSVs into the CSVs folder once a day, so that we can automate the querying + downloading CSVs part.
+
+2. Run main.py, this will output a new txt file in V2/results/, with the date of the audit, containing all of the relevant audit notes in V2/results/audits_YYYY-MM-DD.txt.
+3. After the audits are complete, main.py cleans up the CSVs and moves them into a sub directory: /V2/CSVs/audited_csvs/
+4. LiveOps staff may then use the audit notes to infer a lot about each cashout with prepared audit notes.
+
+TODO:
+- Support JSON output mode (which the daily serverside script can then upload into the admin UI once per day for each relevant cashout id)
+
 
 #### NOTE:
 The process of downloading all of the CSV files should be done as a server side script that runs once a day, that queries and downloads all of the relevant CSV files for the cashed out players.
