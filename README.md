@@ -14,13 +14,10 @@ V4 - Refactoring / performance upgrades;
 ## Usage per verison:
 
 
-
-
 ### V2
 
 #### USAGE:
-1. Download all the relevant CSV files using the audit query on Athena and putting them into the V2/CSVs folder.
-1. a. Alternatively, have a server side script that queries, downloads and saves CSVs into the CSVs folder once a day, so that we can automate the querying + downloading CSVs part.
+1. Download all the relevant CSV files using the audit query on Athena and putting them into the V2/CSVs folder. (Alternatively, have a server side script that queries, downloads and saves CSVs into the CSVs folder once a day, so that we can automate the querying + downloading CSVs part.)
 
 2. Run main.py, this will output a new txt file in V2/results/, with the date of the audit, containing all of the relevant audit notes in V2/results/audits_YYYY-MM-DD.txt.
 3. After the audits are complete, main.py cleans up the CSVs and moves them into a sub directory: /V2/CSVs/audited_csvs/

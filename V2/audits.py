@@ -62,6 +62,19 @@ def audit(dataframe):
     balance_carried_in = try_int(cashout_dataframe.iloc[-1]['newescrow']) # << test this out with cashouts where I know there is some
     total_audited_value = money_from_livegames + money_from_matchups + total_flow_tourneys + money_from_goals + money_from_megaspins + money_from_awards + money_from_week1 + money_from_admin
 
+
+
+
+
+    # run the flags and checks:
+    total_flags = 0
+    check_pairs = {} #key-value pair of "data": ["value", "flagged(True,False, default is false)"], that will be used by check_flag()
+    # loop through check_pairs.items(), if it returns True -> we add to total_flags, and edit the 
+
+
+
+
+
     # construct the string and return the string
     response_string = f"""\n\n
 ---OVERVIEW---
