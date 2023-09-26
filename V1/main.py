@@ -22,7 +22,8 @@ TODO:
 # read the targeted dataframes (later needs to be refactored to handle a directory full of files)
 
 ## ensure that paths and files exist:
-csvs_path = f"{os.getcwd()}{os.path.sep}CSVs"
+csvs_path = os.path.join(os.path.dirname(__file__), "CSVs")
+
 if not os.path.exists(csvs_path):
     os.mkdir(csvs_path)
 
@@ -69,7 +70,7 @@ WHERE (username = '[USERNAME]' OR inviterusername = '[USERNAME]')
 ORDER BY time DESC
 """
 
-with open(f"{os.getcwd()}{os.path.sep}current_query.txt", 'w') as wf:
+with open(os.path.join(os.path.dirname(__file__), "current_query.txt"), 'w') as wf:
     wf.write(query_str)
 
 
