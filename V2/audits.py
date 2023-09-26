@@ -69,8 +69,7 @@ def audit(dataframe):
     # run the flags and checks:
     total_flags = 0
     check_pairs = {} #key-value pair of "data": ["value", "flagged(True,False, default is false)"], that will be used by check_flag()
-    # loop through check_pairs.items(), if it returns True -> we add to total_flags, and edit the 
-
+    # loop through check_pairs.items(), if it returns True -> we add to total_flags, and edit the value for the key.
 
 
 
@@ -274,8 +273,11 @@ def calc_goals_and_awards(dataframe):
     goals_df = dataframe.loc[
         (dataframe['type'] == 'ClaimGoalReward')
         &
-        (dataframe['awardedprizetype'] == 'Tokens')]
-
+        (
+            (dataframe['istransaction'] == True)
+            |
+            (dataframe['awardedprizetype'] == 'Tokens'))]
+    
     money_from_goals = goals_df['balancechange'].sum()
 
     # calculate mega spins

@@ -26,7 +26,7 @@ csvs_path = f"{os.getcwd()}{os.path.sep}CSVs"
 if not os.path.exists(csvs_path):
     os.mkdir(csvs_path)
 
-name = "distal_real" # this is the name of the file and what you want to change in V1
+name = "edge_case" # this is the name of the file and what you want to change in V1
 df_path = f"{csvs_path}{os.path.sep}{name}.csv"
 df = pd.read_csv(df_path, low_memory=False)
 
@@ -160,7 +160,10 @@ for key,value in top3_dict.items():
 rewards_df = current_df.loc[
     (current_df['type'] == 'ClaimGoalReward')
                &
-               (current_df['awardedprizetype'] == 'Tokens')]
+               ((current_df['istransaction'] == True)
+                |
+                (current_df['awardedprizetype'] == 'Tokens')
+                )]
 
 money_from_rewards = rewards_df['balancechange'].sum()
 
@@ -327,3 +330,63 @@ pyperclip.copy(response_string)
 
 
 
+
+
+
+"""
+EDGE CASE resolved:
+-- old ClaimGoalReward events did not have "prizetype", and so a bunch of goal reward claims were missed.
+-- This has been fixed to capture older and newer types of GoalReward.
+-- As can be seen below.
+
+
+--- Overview ---
+Username: 44j88d
+Cashout Value: 1001.0 
+Audited Value: 999.0
+Audit Date: 2023/09/26 2023:41 PM
+Cashout Date: 2023-09-19 17:34:58.678000
+Prev Cashout Date: 2000-01-05 00:00:00
+
+Cashout Count: 0
+Amount carried in (escrow): 0
+Amount carreid forward (escrow): 0
+
+Revenue Source Breakdown:
+|- Amount = % of total
+|-------------
+|- Mega Spins: 100.0 = 10.0%
+|- Live Games: -510.0 = -51.0%
+|- MatchUPs: 4.0 = 0.0%
+|- Goals: 1327.0 = 133.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 40.0 = 4.0%
+|- Awarded (misc): 38.0 = 4.0%
+
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 6416|6408|8
+Livegame TPG: -0.08
+MatchUP TPG: 0.5
+Livegame winrate: 52.0 %
+MatchUP winrate: 38.0%
+Money flow between invitees (amount|%): 0.0|0.0%
+Top 3 players won against:
+DLS151: 64.0
+cmille: 57.0
+leah_w_e: 44.0
+
+
+
+--- NOTES ---
+- All values in Pennies
+- IF Audited value != Cashout value, discrepancy may be caused by:
+-- Value of escrow carried in and out of cashouts
+-- Direct manipulation of user data by engineers (to add or subtract balances)
+-- Some old players may have gameplay history that is logged in a different way, these are not considered.
+-- Some players may have had their username changed, in this case, re-do the query but with their [userid] as the key to the query than [username]
+
+-- If value is significant (10+%), then manual review / audits are required.
+
+"""
