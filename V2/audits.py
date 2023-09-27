@@ -5,6 +5,14 @@ import datetime
 
 
 
+"""
+TODO:
+1. refactor check_flag and calc_pct -> to only use percentage value
+2. complete the flagging operatiosn
+3. Write out the function to determine approve, reject, review flag;
+"""
+
+
 
 ######################## Define Constants ######################## 
 
@@ -19,6 +27,25 @@ EXCLUDED_EVENTS = ['ClientEvent', 'MakeMove', 'GameBegin', 'AdStart',
                    'FindMatch', 'GoalProgress', 'EditUser', 'RankUp', 'SessionStart', 
                    'CashOutStart', 'CashOutMismatch', 'AdFinish',
                    'CancelChallenge', 'CancelMatch', 'AcceptChallenge', 'IssueChallenge', 'DeclineChallenge']
+
+
+FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_type being the datapoint checked,
+                   # and "threshold" being the value over which it is flagged.
+                   "pct_matchup": 0.5, # if they won above 50% of cashout from matchups
+                   "pct_admin": 0.5, # if they won above 50% of cashout from admin
+                   'matchup_wr': 0.7, # if their matchup winrate is above 70% (ignore if less than 10 games)
+                   'livegame_wr': 0.75, # if their livegames winrate is above 75%
+                   'invite_pct': 0.6, # if they won above 60% of cashout from gameplay with invited players
+                   'livegame_tpg': 10, # if their take per game is above 10cents.
+                   'matchup_tpg': 100, # if their take per game is above 10cents.
+
+
+                   # eventually, this data should be imported and calculated from a database file (csv or otherwise)
+                   # that is continuously added to with each audit that is run.
+}
+
+
+
 
 
 # Audit Function
@@ -39,10 +66,10 @@ def audit(dataframe):
 
     # get the key values from various calculation functions
     ## calculate livegame data
-    money_from_livegames, n_livegames, n_livegame_wins, livegame_tpg, livegame_winrate = calc_livegame_numbers(cashout_dataframe)
+    money_from_livegames, n_livegames, n_livegame_wins, livegame_tpg = calc_livegame_numbers(cashout_dataframe)
 
     ## calculate matchup data
-    money_from_matchups, n_matchups, n_matchup_wins, matchup_tpg, matchup_winrate = calc_matchup_numbers(cashout_dataframe)
+    money_from_matchups, n_matchups, n_matchup_wins, matchup_tpg = calc_matchup_numbers(cashout_dataframe)
 
     ## calculate top revenue source (opponents & invited players)
     top3_players = calc_opponent_numbers(cashout_dataframe)
@@ -66,10 +93,25 @@ def audit(dataframe):
 
 
 
+
     # run the flags and checks:
-    total_flags = 0
-    check_pairs = {} #key-value pair of "data": ["value", "flagged(True,False, default is false)"], that will be used by check_flag()
-    # loop through check_pairs.items(), if it returns True -> we add to total_flags, and edit the value for the key.
+    check_pairs = { #key-value pair of "data": ["value", (flagged-True|False), default is false)"], that will be used by check_flag()
+        "pct_matchup": [calc_pct(money_from_matchups, total_audited_value, True), False],
+        "pct_admin": [calc_pct(money_from_admin, total_audited_value, True), False],
+        'invite_pct': [calc_pct(invited_total, total_audited_value, True), False],
+        "matchup_wr": [calc_pct(n_matchup_wins, n_matchups, True), False],
+        "livegame_wr": [calc_pct(n_livegame_wins, n_livegames, True), False],
+        "livegame_tpg": [livegame_tpg, False],
+        "matchup_tpg": [matchup_tpg, False],
+    }
+    # loop through check_pairs.items(), if it returns True ->  and edit the value for the key.
+    for key,value in check_pairs.items():
+        value, flag = check_flag(key,value)
+        if flag:
+            check_pairs[key] = f"{value} 🚩FLAGGED🚩"
+        else:
+            check_pairs[key] = f"{value}"
+
 
 
 
@@ -93,7 +135,7 @@ Revenue Source Breakdown:
 |-------------
 |- Mega Spins: {money_from_megaspins} = {calc_pct(money_from_megaspins, total_audited_value)}%
 |- Live Games: {money_from_livegames} = {calc_pct(money_from_livegames, total_audited_value)}%
-|- MatchUPs: {money_from_matchups} = {calc_pct(money_from_matchups, total_audited_value)}%
+|- MatchUPs: {money_from_matchups} = {check_pairs['pct_matchup']}%
 |- Goals: {money_from_goals} = {calc_pct(money_from_goals, total_audited_value)}%
 |- Tournaments (won|spent|net): {money_from_tourneys}|{money_spent_on_tourneys}|{total_flow_tourneys} = {calc_pct(total_flow_tourneys, total_audited_value)}%
 |- Admin added: {money_from_admin} = {calc_pct(money_from_admin, total_audited_value)}%
@@ -114,6 +156,20 @@ Invited Players: {invited_players}
 Money flow between invitees (amount|%): {invited_total}|{calc_pct(invited_total, total_audited_value)}%\n\n
 """
     return response_string
+
+
+
+
+
+# flagging functions
+def check_flag(info_type, value):
+    """
+
+    value passed are as follows: [value, flagged?-True|False]
+    check_flag checks the
+    """
+    return [value, value[0] > FLAG_THRESHOLD[info_type]]
+
 
 
 
@@ -161,13 +217,16 @@ def get_cashout_events(dataframe):
 
 
 # calculation functions for various important numbers / aspects of gameplay and sources of money
-def calc_pct(indiv, group):
+def calc_pct(indiv, group, decimal=False):
     """
     calc_pct(indiv, group) - takes two int/float types as individual and group (parent) number and returns 
     the percent that the individual is of the group number.
     """
     try:
-        return round((indiv / group) * 100,0)
+        if decimal == True:
+            return round((indiv / group))
+        else:
+            return round((indiv / group) * 100,0)
     except ZeroDivisionError:
         return 0
 
@@ -198,9 +257,8 @@ def calc_livegame_numbers(dataframe):
     n_livegames = livegames_df.shape[0]
 
     livegame_tpg = calc_tpg(money_from_livegames, n_livegames)
-    livegame_winrate = calc_pct(n_livegame_wins, n_livegames)
 
-    return money_from_livegames, n_livegames, n_livegame_wins, livegame_tpg, livegame_winrate
+    return money_from_livegames, n_livegames, n_livegame_wins, livegame_tpg
 
 
 def calc_matchup_numbers(dataframe):
@@ -218,9 +276,8 @@ def calc_matchup_numbers(dataframe):
     n_matchups = matchup_df.shape[0]
 
     matchup_tpg = calc_tpg(money_from_matchups, n_matchups)
-    matchup_winrate = calc_pct(n_matchup_wins, n_matchups)
 
-    return money_from_matchups, n_matchups, n_matchup_wins, matchup_tpg, matchup_winrate
+    return money_from_matchups, n_matchups, n_matchup_wins, matchup_tpg
 
 
 def calc_opponent_numbers(dataframe):
@@ -344,18 +401,6 @@ def calc_tournament_outcomes(dataframe):
 
     return money_from_tourneys, money_spent_on_tourneys, total_flow_tourneys
     
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -8,10 +8,19 @@ V2 - will use multithreading to target and process all CSVs placed in the releva
 
 
 V3 - will carry a auto-flagging and approving system based on a historic dataset of all cashouts in the past.
-V4 - Refactoring / performance upgrades;
 
 
 ## Usage per verison:
+
+
+### V3
+
+#### USAGE:
+Instructions are the same as V2 - however, the script will now infer based on the audit data to raise flags on data points and approve, flag or even reject cashouts.
+Eventually, this can be integrated with the TallyUP Admin backend API, or simply digested by the server and pushed onto the AdminUI while changing the states based on each result.
+
+Therefore, this version outputs a JSON version and a txt version as outputs (with configurations available depending on the sys.argv of the calls)
+
 
 
 ### V2
