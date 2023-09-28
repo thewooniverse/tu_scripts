@@ -12,18 +12,7 @@ V3 - will carry a auto-flagging and approving system based on a historic dataset
 
 ## Usage per verison:
 
-
-### V3
-
-#### USAGE:
-Instructions are the same as V2 - however, the script will now infer based on the audit data to raise flags on data points and approve, flag or even reject cashouts.
-Eventually, this can be integrated with the TallyUP Admin backend API, or simply digested by the server and pushed onto the AdminUI while changing the states based on each result.
-
-Therefore, this version outputs a JSON version and a txt version as outputs (with configurations available depending on the sys.argv of the calls)
-
-
-
-### V2
+### V2 / V3
 
 #### USAGE:
 1. Download all the relevant CSV files using the audit query on Athena and putting them into the V2/CSVs folder. (Alternatively, have a server side script that queries, downloads and saves CSVs into the CSVs folder once a day, so that we can automate the querying + downloading CSVs part.)

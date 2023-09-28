@@ -31,15 +31,13 @@ EXCLUDED_EVENTS = ['ClientEvent', 'MakeMove', 'GameBegin', 'AdStart',
 
 FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_type being the datapoint checked,
                    # and "threshold" being the value over which it is flagged.
-                   "pct_matchup": 0.5, # if they won above 50% of cashout from matchups
-                   "pct_admin": 0.5, # if they won above 50% of cashout from admin
-                   'matchup_wr': 0.7, # if their matchup winrate is above 70% (ignore if less than 10 games)
-                   'livegame_wr': 0.75, # if their livegames winrate is above 75%
-                   'invite_pct': 0.6, # if they won above 60% of cashout from gameplay with invited players
+                   "pct_matchup": 50, # if they won above 50% of cashout from matchups
+                   "pct_admin": 50, # if they won above 50% of cashout from admin
+                   'matchup_wr': 70, # if their matchup winrate is above 70% (ignore if less than 10 games)
+                   'livegame_wr': 75, # if their livegames winrate is above 75%
+                   'invite_pct': 25, # if they won above 60% of cashout from gameplay with invited players
                    'livegame_tpg': 10, # if their take per game is above 10cents.
-                   'matchup_tpg': 100, # if their take per game is above 10cents.
-
-
+                   'matchup_tpg': 35, # if their take per game is above 10cents.
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
                    # that is continuously added to with each audit that is run.
 }
@@ -91,29 +89,28 @@ def audit(dataframe):
 
 
 
-
-
-
     # run the flags and checks:
     check_pairs = { #key-value pair of "data": ["value", (flagged-True|False), default is false)"], that will be used by check_flag()
-        "pct_matchup": [calc_pct(money_from_matchups, total_audited_value, True), False],
-        "pct_admin": [calc_pct(money_from_admin, total_audited_value, True), False],
-        'invite_pct': [calc_pct(invited_total, total_audited_value, True), False],
-        "matchup_wr": [calc_pct(n_matchup_wins, n_matchups, True), False],
-        "livegame_wr": [calc_pct(n_livegame_wins, n_livegames, True), False],
+        "pct_matchup": [calc_pct(money_from_matchups, total_audited_value), False],
+        "pct_admin": [calc_pct(money_from_admin, total_audited_value), False],
+        'invite_pct': [calc_pct(invited_total, total_audited_value), False],
+        "matchup_wr": [calc_pct(n_matchup_wins, n_matchups), False],
+        "livegame_wr": [calc_pct(n_livegame_wins, n_livegames), False],
         "livegame_tpg": [livegame_tpg, False],
         "matchup_tpg": [matchup_tpg, False],
     }
     # loop through check_pairs.items(), if it returns True ->  and edit the value for the key.
+    flagged_flags = []
+
     for key,value in check_pairs.items():
         value, flag = check_flag(key,value)
         if flag:
-            check_pairs[key] = f"{value} 🚩FLAGGED🚩"
+            flagged_flags.append(key)
+            check_pairs[key] = f"🚩{value[0]}🚩"
         else:
-            check_pairs[key] = f"{value}"
+            check_pairs[key] = f"{value[0]}"
 
-
-
+    outcome = determine_status(flagged_flags)
 
 
     # construct the string and return the string
@@ -126,34 +123,36 @@ Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
 Cashout Date: {ts1}
 Prev Cashout Date: {ts2}
 
+Audit Bot Verdict: {outcome}
+
 Cashout Count: {number_of_cashouts}
 Amount carried in (escrow): {balance_carried_forward}
 Amount carreid forward (escrow): {balance_carried_in}
 
 Revenue Source Breakdown:
-|- Amount = % of total
+|- Amount = % of total won
 |-------------
 |- Mega Spins: {money_from_megaspins} = {calc_pct(money_from_megaspins, total_audited_value)}%
 |- Live Games: {money_from_livegames} = {calc_pct(money_from_livegames, total_audited_value)}%
 |- MatchUPs: {money_from_matchups} = {check_pairs['pct_matchup']}%
 |- Goals: {money_from_goals} = {calc_pct(money_from_goals, total_audited_value)}%
 |- Tournaments (won|spent|net): {money_from_tourneys}|{money_spent_on_tourneys}|{total_flow_tourneys} = {calc_pct(total_flow_tourneys, total_audited_value)}%
-|- Admin added: {money_from_admin} = {calc_pct(money_from_admin, total_audited_value)}%
+|- Admin added: {money_from_admin} = {check_pairs['pct_admin']}%
 |- Week1 prize(old): {money_from_week1} = {calc_pct(money_from_week1, total_audited_value)}%
 |- Awarded (misc): {money_from_awards} = {calc_pct(money_from_awards, total_audited_value)}%
 
 
 --- GamePlay Analysis ---
 Number of Games to Cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
-Livegame TPG: {livegame_tpg}
-MatchUP TPG: {matchup_tpg}
-Livegame winrate: {calc_pct(n_livegame_wins, n_livegames)} %
-MatchUP winrate: {calc_pct(n_matchup_wins, n_matchups)}%
+Livegame TPG: {check_pairs['livegame_tpg']}
+MatchUP TPG: {check_pairs['matchup_tpg']}
+Livegame winrate: {check_pairs['livegame_wr']} %
+MatchUP winrate: {check_pairs['matchup_wr']}%
 Top 3 players won against:
-{calc_opponent_numbers(cashout_dataframe)}
+{top3_players}
 
 Invited Players: {invited_players}
-Money flow between invitees (amount|%): {invited_total}|{calc_pct(invited_total, total_audited_value)}%\n\n
+Money flow between invitees (amount|%): {invited_total}|{check_pairs['invite_pct']}%\n\n
 """
     return response_string
 
@@ -170,9 +169,13 @@ def check_flag(info_type, value):
     """
     return [value, value[0] > FLAG_THRESHOLD[info_type]]
 
-
-
-
+def determine_status(flags):
+    if len(flags) == 0:
+        return f"Approved"
+    elif len(flags) <= 3:
+        return f"Flagged for: {', '.join(flags)}"
+    elif len(flags) > 3:
+        return f"Rejected for: {', '.join(flags)}"
 
 
 
@@ -217,16 +220,13 @@ def get_cashout_events(dataframe):
 
 
 # calculation functions for various important numbers / aspects of gameplay and sources of money
-def calc_pct(indiv, group, decimal=False):
+def calc_pct(indiv, group):
     """
     calc_pct(indiv, group) - takes two int/float types as individual and group (parent) number and returns 
     the percent that the individual is of the group number.
     """
     try:
-        if decimal == True:
-            return round((indiv / group))
-        else:
-            return round((indiv / group) * 100,0)
+        return round((indiv / group) * 100,0)
     except ZeroDivisionError:
         return 0
 
