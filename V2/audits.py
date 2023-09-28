@@ -109,8 +109,14 @@ def audit(dataframe):
             check_pairs[key] = f"🚩{value[0]}🚩"
         else:
             check_pairs[key] = f"{value[0]}"
+    
+    status = determine_status(flagged_flags)
 
-    outcome = determine_status(flagged_flags)
+    flag_strings = ""
+    for flag in flagged_flags:
+        flag_string = f"\n{flag}: {get_flag_message(flag)}"
+        flag_strings += flag_string
+
 
 
     # construct the string and return the string
@@ -123,7 +129,10 @@ Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
 Cashout Date: {ts1}
 Prev Cashout Date: {ts2}
 
-Audit Bot Verdict: {outcome}
+----------
+Audit Bot Verdict: {status}
+{flag_strings}
+----------
 
 Cashout Count: {number_of_cashouts}
 Amount carried in (escrow): {balance_carried_forward}
@@ -156,6 +165,22 @@ Money flow between invitees (amount|%): {invited_total}|{check_pairs['invite_pct
 """
     return response_string
 
+
+
+def get_flag_message(flag):
+    flag_messages = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_type being the datapoint checked,
+                   # and "threshold" being the value over which it is flagged.
+                   "pct_matchup": "Too much money has been won in matchups", # if they won above 50% of cashout from matchups
+                   "pct_admin": "Too much money has been added by admins", # if they won above 50% of cashout from admin
+                   'matchup_wr': "Winrate is too high (ignore if # of games is not too high)", # if their matchup winrate is above 70% (ignore if less than 10 games)
+                   'livegame_wr': "Winrate is too high", # if their livegames winrate is above 75%
+                   'invite_pct': "Too much money won against invited players", # if they won above 60% of cashout from gameplay with invited players
+                   'livegame_tpg': "Take per game is too high, user is too profitable", # if their take per game is above 10cents.
+                   'matchup_tpg': "Take per game is too high, user is too profitable", # if their take per game is above 10cents.
+                   # eventually, this data should be imported and calculated from a database file (csv or otherwise)
+                   # that is continuously added to with each audit that is run.
+                    }
+    return flag_messages[flag]
 
 
 
