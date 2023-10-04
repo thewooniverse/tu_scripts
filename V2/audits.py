@@ -7,9 +7,6 @@ import datetime
 
 """
 TODO:
-1. refactor check_flag and calc_pct -> to only use percentage value
-2. complete the flagging operatiosn
-3. Write out the function to determine approve, reject, review flag;
 """
 
 
@@ -39,7 +36,7 @@ FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_typ
                    'livegame_tpg': 10, # if their take per game is above 10cents.
                    'matchup_tpg': 35, # if their take per game is above 10cents.
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
-                   # that is continuously added to with each audit that is run.
+                   # that is continuously added to (and therefore, the number dynmaically reflects) with each audit that is run.
 }
 
 
@@ -106,7 +103,7 @@ def audit(dataframe):
         value, flag = check_flag(key,value)
         if flag:
             flagged_flags.append(key)
-            check_pairs[key] = f"🚩{value[0]}🚩"
+            check_pairs[key] = f">>>{value[0]}<<<"
         else:
             check_pairs[key] = f"{value[0]}"
     
