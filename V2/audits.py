@@ -59,10 +59,15 @@ def audit(dataframe):
     dataframe['time'] = pd.to_datetime(dataframe['time'])
     dataframe.set_index('time', inplace=True)
 
-
+    # get lifetime data
     ## get the lifetime cashout data
     total_cashed_out_value, total_taken_in_cash, total_donated, total_taken_in_cash_current_year = get_lifetime_cashout_data(dataframe)
 
+    ## get lifetime gameplay data
+    lifetime_money_from_livegames, lifetime_n_livegames, lifetime_n_livegame_wins, lifetime_livegame_tpg = calc_livegame_numbers(dataframe)
+
+
+    # get cashout specific data
     ## get the cashouts dataframe that contains all events for the given timestamps between this cashout, and last cashout.
     cashout_dataframe, ts1, ts2, cashout_value, username = get_cashout_events(dataframe)
 
@@ -136,9 +141,9 @@ Prev Cashout Date: {ts2}
 ----------
 Lifetime Cashouts total | cash | donated: {total_cashed_out_value} | {total_taken_in_cash} | {total_donated}
 Cash taken this year: {check_pairs['current_year_cash_taken']}
-Lifetime TPG:
-Lifetime games played:
-Lifetime Winrate (Livegame|Matchups): 
+Lifetime Livegame TPG: {lifetime_livegame_tpg}
+Lifetime Livegames played: {lifetime_n_livegames}
+Lifetime Livegame Winrate: {calc_pct(lifetime_n_livegame_wins,lifetime_n_livegames)} %
 ----------
 Audit Bot Verdict: {status}
 {flag_strings}
@@ -546,9 +551,14 @@ def calc_tournament_outcomes(dataframe):
 if __name__ == '__main__':
     script_path = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1])
 
+
+    # test the audit(dataframe) function
     test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "DLS_inviter.csv"
     test_data = pd.read_csv(test_path)
     print(audit(test_data))
+
+    # refresh the audit queries in case it has changed.
+
 
 
 
