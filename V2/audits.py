@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import datetime
+import hashlib
 
 
 
@@ -35,6 +36,8 @@ FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_typ
                    'invite_pct': 25, # if they won above 60% of cashout from gameplay with invited players
                    'livegame_tpg': 10, # if their take per game is above 10cents.
                    'matchup_tpg': 35, # if their take per game is above 10cents.
+                   "current_year_cash_taken": 60000, # if the user has taken more than 600$ worth of cash from the system, flag for W9
+
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
                    # that is continuously added to (and therefore, the number dynmaically reflects) with each audit that is run.
 }
@@ -55,6 +58,10 @@ def audit(dataframe):
     dataframe = filter_and_order(dataframe)
     dataframe['time'] = pd.to_datetime(dataframe['time'])
     dataframe.set_index('time', inplace=True)
+
+
+    ## get the lifetime cashout data
+    total_cashed_out_value, total_taken_in_cash, total_donated, total_taken_in_cash_current_year = get_lifetime_cashout_data(dataframe)
 
     ## get the cashouts dataframe that contains all events for the given timestamps between this cashout, and last cashout.
     cashout_dataframe, ts1, ts2, cashout_value, username = get_cashout_events(dataframe)
@@ -95,6 +102,7 @@ def audit(dataframe):
         "livegame_wr": [calc_pct(n_livegame_wins, n_livegames), False],
         "livegame_tpg": [livegame_tpg, False],
         "matchup_tpg": [matchup_tpg, False],
+        "current_year_cash_taken": [total_taken_in_cash_current_year, False]
     }
     # loop through check_pairs.items(), if it returns True ->  and edit the value for the key.
     flagged_flags = []
@@ -103,7 +111,7 @@ def audit(dataframe):
         value, flag = check_flag(key,value)
         if flag:
             flagged_flags.append(key)
-            check_pairs[key] = f">>>{value[0]}<<<"
+            check_pairs[key] = f"|>|>{value[0]}|>|>"
         else:
             check_pairs[key] = f"{value[0]}"
     
@@ -125,7 +133,12 @@ Audited Value: {total_audited_value}
 Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
 Cashout Date: {ts1}
 Prev Cashout Date: {ts2}
-
+----------
+Lifetime Cashouts total | cash | donated: {total_cashed_out_value} | {total_taken_in_cash} | {total_donated}
+Cash taken this year: {check_pairs['current_year_cash_taken']}
+Lifetime TPG:
+Lifetime games played:
+Lifetime Winrate (Livegame|Matchups): 
 ----------
 Audit Bot Verdict: {status}
 {flag_strings}
@@ -164,6 +177,8 @@ Money flow between invitees (amount|%): {invited_total}|{check_pairs['invite_pct
 
 
 
+
+
 def get_flag_message(flag):
     flag_messages = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_type being the datapoint checked,
                    # and "threshold" being the value over which it is flagged.
@@ -174,6 +189,7 @@ def get_flag_message(flag):
                    'invite_pct': "Too much money won against invited players", # if they won above 60% of cashout from gameplay with invited players
                    'livegame_tpg': "Take per game is too high, user is too profitable", # if their take per game is above 10cents.
                    'matchup_tpg': "Take per game is too high, user is too profitable", # if their take per game is above 10cents.
+                   "current_year_cash_taken": "User needs to sign a W9 form or prove they are outside of US",
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
                    # that is continuously added to with each audit that is run.
                     }
@@ -181,15 +197,14 @@ def get_flag_message(flag):
 
 
 
-
 # flagging functions
 def check_flag(info_type, value):
     """
-
+    check_flag(info_type, value) - checks the flag and sees whether the value for that flag is passed 
     value passed are as follows: [value, flagged?-True|False]
-    check_flag checks the
     """
     return [value, value[0] > FLAG_THRESHOLD[info_type]]
+
 
 def determine_status(flags):
     if len(flags) == 0:
@@ -198,6 +213,34 @@ def determine_status(flags):
         return f"Flagged for: {', '.join(flags)}"
     elif len(flags) > 3:
         return f"Rejected for: {', '.join(flags)}"
+
+# additional helper functions
+import hashlib
+
+
+
+def anonymize_email(email, secret_key):
+    """
+    anonymize_email(email, secret_key): Anonymize an email using a hash function and a secret key.
+
+    Args:
+    - email (str): Email address to be anonymized.
+    - secret_key (str): Secret key used for anonymization.
+
+    Returns:
+    - str: Anonymized hash representation of the email.
+    """
+    
+    # Combine the email and the secret key
+    combined = email + str(secret_key)
+    
+    # Generate a SHA256 hash of the combined string
+    hash_obj = hashlib.sha256(combined.encode())
+    
+    # Return the hexadecimal representation of the hash
+    return hash_obj.hexdigest()
+
+
 
 
 
@@ -210,6 +253,30 @@ def filter_and_order(dataframe):
     dataframe = dataframe[COLUMNS]
     dataframe = dataframe[~dataframe['type'].isin(EXCLUDED_EVENTS)]
     return dataframe
+
+
+def get_year_timestamps():
+    """
+    get_year_timestamps(): Get the current year, timestamp for the beginning of the year, 
+    and timestamp for the end of the year.
+    
+    Returns:
+    - int: Current year
+    - datetime: Timestamp of the beginning of the year
+    - datetime: Timestamp of the end of the year
+    """
+    
+    # Get the current date and time
+    now = datetime.datetime.now()
+    
+    # Get the beginning of the current year (January 1st, 00:00:00)
+    start_of_year = datetime.datetime(year=now.year, month=1, day=1)
+    
+    # Get the end of the current year (December 31st, 23:59:59)
+    end_of_year = datetime.datetime(year=now.year, month=12, day=31, hour=23, minute=59, second=59)
+    
+    return now.year, start_of_year, end_of_year
+
 
 
 def get_cashout_events(dataframe):
@@ -226,17 +293,54 @@ def get_cashout_events(dataframe):
     if (len(cashouts)-1) != cashouts['count'].iloc[0]:
         cashouts.drop_duplicates(subset=['count'], inplace=True)
 
-    # slice the dataframe based on the timestamps
+    # slice the dataframe based on the timestamps to get the cashout events for the given cashout to last cashout
     ts1 = cashouts.index[0] # current cashout
     if len(cashouts) > 1:
         ts2 = cashouts.index[1] # last cashout, if it exists;
     else:
         ts2 = pd.Timestamp('2000-01-05') # default timestamp 2 is super early (pre-dating the launch of the app itself), so it includes everything
     current_df = dataframe.loc[ts1:ts2]
+
+    # get the other necessary numbers / metadata
     cashout_value = cashouts['prevbalance'].iloc[0]
     username = cashouts['username'].iloc[0]
     
     return current_df, ts1, ts2, cashout_value, username
+
+
+def get_lifetime_cashout_data(dataframe):
+    """
+    get_lifetime_cashout_data(dataframe): takes a dataframe, and returns lifetime cashout data around number of cashouts, total cashed out and W9 / Tax implications and data.
+    """
+    # get the cashouts table and extract data
+    cashouts = dataframe.loc[(dataframe['type'].str.contains('CashOutFinish'))
+              &
+              (~dataframe['iserror'])]
+    
+    # drop duplicates
+    if (len(cashouts)-1) != cashouts['count'].iloc[0]:
+        cashouts.drop_duplicates(subset=['count'], inplace=True)
+    
+    # get lifetime cashout data
+    total_cashed_out_value = cashouts['prevbalance'].sum()
+    total_taken_in_cash = cashouts['cashamount'].sum()
+    total_donated = cashouts['charityamount'].sum()
+
+    # calculate how much they took in cash this year
+    
+    current_year, year_start_ts, year_end_ts = get_year_timestamps()
+    current_cashout_ts = cashouts.index[0]
+    
+    current_year_cashouts = cashouts.loc[year_start_ts:year_end_ts]
+    total_taken_in_cash_current_year = current_year_cashouts['cashamount'].sum()
+
+    return total_cashed_out_value, total_taken_in_cash, total_donated, total_taken_in_cash_current_year
+
+
+    
+
+    
+
 
 
 
@@ -442,7 +546,7 @@ def calc_tournament_outcomes(dataframe):
 if __name__ == '__main__':
     script_path = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1])
 
-    test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "leo_colluder.csv"
+    test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "DLS_inviter.csv"
     test_data = pd.read_csv(test_path)
     print(audit(test_data))
 
