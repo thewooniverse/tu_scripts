@@ -220,10 +220,6 @@ def determine_status(flags):
         return f"Rejected for: {', '.join(flags)}"
 
 # additional helper functions
-import hashlib
-
-
-
 def anonymize_email(email, secret_key):
     """
     anonymize_email(email, secret_key): Anonymize an email using a hash function and a secret key.
@@ -244,7 +240,6 @@ def anonymize_email(email, secret_key):
     
     # Return the hexadecimal representation of the hash
     return hash_obj.hexdigest()
-
 
 
 
@@ -345,8 +340,6 @@ def get_lifetime_cashout_data(dataframe):
     
 
     
-
-
 
 
 
@@ -536,6 +529,34 @@ def calc_tournament_outcomes(dataframe):
 
 
 
+# Athena Query construction function:
+def refresh_athena_query():
+    """
+    refresh_athena_query(columns, excl_events): refreshes current_query.txt with the newest Athena query based on the current state of columns and excluded events
+    """
+    str_parsed_columns = ', '.join(COLUMNS)
+    excluded_sql_str = f""
+    for event in EXCLUDED_EVENTS:
+        excluded_sql_str+=f"\nAND type != \'{event}\'"
+
+
+    query_str = f"""
+/* GENERAL - CASHOUT AUDIT TABLE */
+/* Manual input variables marked between [brackets] - please input [USERNAME] [DEST_SERVER], remove the brackets after input */
+
+SELECT {str_parsed_columns}
+FROM [DEST_SERVER]
+WHERE (username = '[USERNAME]' OR inviterusername = '[USERNAME]')
+{excluded_sql_str}
+ORDER BY time DESC
+"""
+    script_path = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1])
+    with open(script_path + os.path.sep + "current_query.txt", 'w') as wf:
+        wf.write(query_str)
+
+
+
+
 
 
 
@@ -558,6 +579,7 @@ if __name__ == '__main__':
     print(audit(test_data))
 
     # refresh the audit queries in case it has changed.
+    refresh_athena_query()
 
 
 
