@@ -44,6 +44,10 @@ FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_typ
 
 
 
+EMAIL_HASH = "****" # please replace with hash from slack.
+
+
+
 
 
 # Audit Function
@@ -144,16 +148,13 @@ Cash taken this year: {check_pairs['current_year_cash_taken']}
 Lifetime Livegame TPG: {lifetime_livegame_tpg}
 Lifetime Livegames played: {lifetime_n_livegames}
 Lifetime Livegame Winrate: {calc_pct(lifetime_n_livegame_wins,lifetime_n_livegames)} %
+Cashout Count: {number_of_cashouts}
 ----------
 Audit Bot Verdict: {status}
 {flag_strings}
 ----------
 
-Cashout Count: {number_of_cashouts}
-Amount carried in (escrow): {balance_carried_forward}
-Amount carreid forward (escrow): {balance_carried_in}
-
-Revenue Source Breakdown:
+Cashout Source Breakdown:
 |- Amount = % of total won
 |-------------
 |- Mega Spins: {money_from_megaspins} = {calc_pct(money_from_megaspins, total_audited_value)}%
@@ -164,6 +165,9 @@ Revenue Source Breakdown:
 |- Admin added: {money_from_admin} = {check_pairs['pct_admin']}%
 |- Week1 prize(old): {money_from_week1} = {calc_pct(money_from_week1, total_audited_value)}%
 |- Awarded (misc): {money_from_awards} = {calc_pct(money_from_awards, total_audited_value)}%
+|
+|- Amount carried into cashout (escrow): {balance_carried_forward}
+|- Amount carreid forward to next (escrow): {balance_carried_in}
 
 
 --- GamePlay Analysis ---
@@ -184,6 +188,40 @@ Money flow between invitees (amount|%): {invited_total}|{check_pairs['invite_pct
 
 
 
+# helper functions
+def anonymize_email(email, secret_key=EMAIL_HASH):
+    """
+    anonymize_email(email, secret_key): Anonymize an email using a hash function and a secret key.
+
+    Args:
+    - email (str): Email address to be anonymized.
+    - secret_key (str): Secret key used for anonymization.
+
+    Returns:
+    - str: Anonymized hash representation of the email.
+    """
+    
+    # Combine the email and the secret key
+    combined = str(email) + str(secret_key)
+    
+    # Generate a SHA256 hash of the combined string
+    hash_obj = hashlib.sha256(combined.encode())
+    
+    # Return the hexadecimal representation of the hash
+    return hash_obj.hexdigest()
+
+def reconcile_email_hash():
+    """
+    reconcile_email_hash():
+    """
+    pass
+
+
+
+
+
+
+# flagging functions
 def get_flag_message(flag):
     flag_messages = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_type being the datapoint checked,
                    # and "threshold" being the value over which it is flagged.
@@ -200,9 +238,6 @@ def get_flag_message(flag):
                     }
     return flag_messages[flag]
 
-
-
-# flagging functions
 def check_flag(info_type, value):
     """
     check_flag(info_type, value) - checks the flag and sees whether the value for that flag is passed 
@@ -218,30 +253,6 @@ def determine_status(flags):
         return f"Flagged for: {', '.join(flags)}"
     elif len(flags) > 3:
         return f"Rejected for: {', '.join(flags)}"
-
-# additional helper functions
-def anonymize_email(email, secret_key):
-    """
-    anonymize_email(email, secret_key): Anonymize an email using a hash function and a secret key.
-
-    Args:
-    - email (str): Email address to be anonymized.
-    - secret_key (str): Secret key used for anonymization.
-
-    Returns:
-    - str: Anonymized hash representation of the email.
-    """
-    
-    # Combine the email and the secret key
-    combined = email + str(secret_key)
-    
-    # Generate a SHA256 hash of the combined string
-    hash_obj = hashlib.sha256(combined.encode())
-    
-    # Return the hexadecimal representation of the hash
-    return hash_obj.hexdigest()
-
-
 
 
 # dataframe parsing and cleanup functions:
@@ -337,6 +348,19 @@ def get_lifetime_cashout_data(dataframe):
     return total_cashed_out_value, total_taken_in_cash, total_donated, total_taken_in_cash_current_year
 
 
+
+
+
+def get_session_data():
+    """
+    session_data(): takes a gameplay dataframe and calculates their session data to determine whether they appear to be a bot or not.
+
+    returns:
+    - avg_playtime_per_day
+    - avg_games_per_day
+    - avg_length_of_gameplay
+    """
+    pass
     
 
     
@@ -573,13 +597,48 @@ if __name__ == '__main__':
     script_path = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1])
 
 
-    # test the audit(dataframe) function
-    test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "DLS_inviter.csv"
-    test_data = pd.read_csv(test_path)
-    print(audit(test_data))
+    # # test the audit(dataframe) function
+    # test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "DLS_inviter.csv"
+    # test_data = pd.read_csv(test_path)
+    # print(audit(test_data))
 
-    # refresh the audit queries in case it has changed.
-    refresh_athena_query()
+    # # refresh the audit queries in case it has changed.
+    # refresh_athena_query()
+
+
+
+
+
+
+    # section for constructing initial email_hash.csv table containing history of hashed "username, email_hash"" columns
+    """
+    In order to update this, execute the following query, download the results and put it in the current directory where script is (CASHOTU_AUDITING/V2/) as email_pre_hash.csv:
+    The hash itself will be shared on slack, please replace it.
+
+/* GENERAL - username-payee table */
+/* Manual input variables marked between [brackets] - please input [USERNAME] [DEST_SERVER], remove the brackets after input */
+
+SELECT username, payee
+WHERE type = 'CashoutFinish'
+AND NOT iserror
+ORDER BY time DESC
+
+    """
+    ## read the CSV into pd
+    unhashed_emails_csv_path = script_path + os.path.sep + "email_pre_hash.csv"
+    unhashed_email_df = pd.read_csv(unhashed_emails_csv_path)
+    # print(unhashed_email_df)
+
+    ## apply the hashing function to the payee column, and drop the column
+    unhashed_email_df['email_hash'] = unhashed_email_df['payee'].apply(anonymize_email)
+    hashed_email_df = unhashed_email_df[['username', 'email_hash']]
+    print(hashed_email_df)
+
+    ## save the new dataframe into email_hash.xlsx
+    email_hash_csv_dest_path = script_path + os.path.sep + "email_hash.csv"
+    hashed_email_df.to_csv(email_hash_csv_dest_path)
+
+
 
 
 

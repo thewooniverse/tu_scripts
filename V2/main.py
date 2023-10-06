@@ -74,7 +74,8 @@ with open(result_path, 'w') as wf:
     wf.write(response_string)
 
 # cleanup for CSVs folder;
-for org_path in csv_paths:
-    filename = org_path.split(os.path.sep)[-1]
+for orig_path in csv_paths:
+    
+    filename = orig_path.split(os.path.sep)[-1]
     dest_path = csvs_path+os.path.sep+"audited_CSVs"+os.path.sep+filename
-    shutil.move(org_path, dest_path)
+    shutil.move(orig_path, dest_path)
