@@ -1,7 +1,15 @@
 
-*.csv
-.csv
+
 .DS_Store
 .env
 __pycache__
 .pyc
+
+
+#CSV folders
+V1/CSVs/
+V2/CSVs
+V2/email_pre_hash.csv
+/CSVs/
+/data_testing/edge_case.csv
+
