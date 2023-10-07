@@ -8,6 +8,7 @@ import hashlib
 
 """
 TODO:
+Test with refreshed query!
 """
 
 
@@ -19,7 +20,8 @@ COLUMNS = ['time', 'type', 'username', 'userid', 'deviceid', 'istransaction',
           'prevbalance','newbalance', 'prevescrow', 'newescrow', 'balancechange', 'escrowchange',
           'originalprizetype', 'awardedprizetype', 'awardedprizeamount',
           'usedpowerup',
-          'iserror', 'percentage', 'cashamount', 'charityamount', 'count']
+        'iserror', 'percentage', 'cashamount', 'charityamount', 'count', 'payee']
+
 
 EXCLUDED_EVENTS = ['ClientEvent', 'MakeMove', 'GameBegin', 'AdStart', 
                    'FindMatch', 'GoalProgress', 'EditUser', 'RankUp', 'SessionStart', 
@@ -43,8 +45,10 @@ FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_typ
 }
 
 
+SCRIPT_PATH = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1]) # path of the current script itself;
 
 EMAIL_HASH = "****" # please replace with hash from slack.
+
 
 
 
@@ -73,7 +77,7 @@ def audit(dataframe):
 
     # get cashout specific data
     ## get the cashouts dataframe that contains all events for the given timestamps between this cashout, and last cashout.
-    cashout_dataframe, ts1, ts2, cashout_value, username = get_cashout_events(dataframe)
+    cashout_dataframe, ts1, ts2, cashout_value, username, email_address = get_cashout_events(dataframe)
 
     # get the key values from various calculation functions
     ## calculate livegame data
@@ -293,7 +297,14 @@ def get_year_timestamps():
 def get_cashout_events(dataframe):
     """
     get_cashout_events(dataframe) takes a dataframe, and returns a sliced version of the dataframe, containing all events
-    leading up to the current cashout, from the timestamp of the last cashout.
+    leading up to the current cashout, from the timestamp of the last cashout. ALong with other key information around the current cashout:
+
+    returns:
+    - current_df, this is the dataframe containing events for this current cashout
+    - ts1, ts2, this is the timestamps of the current cashout, and last cashout
+    - cashout value, this is the amount reported in CashoutFinish event
+    - username, this is the username of the player
+    - email_address, this is the email address entered by the player for payout.
     """
     # get a table of non-error cashoutfinish events
     cashouts = dataframe.loc[(dataframe['type'].str.contains('CashOutFinish'))
@@ -315,8 +326,9 @@ def get_cashout_events(dataframe):
     # get the other necessary numbers / metadata
     cashout_value = cashouts['prevbalance'].iloc[0]
     username = cashouts['username'].iloc[0]
+    email_address = cashouts['payee'].iloc[0]
     
-    return current_df, ts1, ts2, cashout_value, username
+    return current_df, ts1, ts2, cashout_value, username, email_address
 
 
 def get_lifetime_cashout_data(dataframe):
@@ -351,6 +363,10 @@ def get_lifetime_cashout_data(dataframe):
 
 
 
+
+
+
+
 def get_session_data():
     """
     session_data(): takes a gameplay dataframe and calculates their session data to determine whether they appear to be a bot or not.
@@ -361,9 +377,63 @@ def get_session_data():
     - avg_length_of_gameplay
     """
     pass
+
+
+
+def check_paypal_sharing(user_key, email_address):
+    """
+    check_paypal_sharing(): checks fo
+    user_key can be both a userid or username. By default username is used, however, in the future to make the system more robust towards edge cases userid should be used to key to account for username changes.
+
+
+    updates:
+    - email_hash.csv
+
+    returns:
+    {email_address_used: non_self_usernames}???? << need to determine the data returned; should I process it here, or unpack it later
+
+    - [list of email addresses used] - if none, the length of this is 1
+    - [list of usernames found to be sharing email hash of current email or any other in the past] - empty list [] is 
+    """
+    # hash the email passed (or call it before this function is called?)
+    current_email_hash = anonymize_email(email_address)
+
+    # read the current email_hash.csv
+    current_email_hash_path = SCRIPT_PATH + os.path.sep + "email_hash.csv"
+    email_hash_df = pd.read_csv(current_email_hash_path)
+
+    # check against it to see if any users (username) has shared this email hash, loop through;
+    current_email_shared_users = email_hash_df.loc[(email_hash_df['username'] != user_key)
+                                     &
+                                     (email_hash_df['email_hash'] == current_email_hash)]
+    
+    email_users_dict = {
+        # if there are no collusions for each email hash, the value for each email hash key should be []; email_hash: [], if there are other users it will be email_hash: [username1, username2]
+        current_email_hash: list(current_email_shared_users)
+        }
     
 
-    
+
+    # check against dataframe also to see if the player has used any other emails in the past that is not the current email;
+    other_past_email_hashes = email_hash_df.loc[(email_hash_df['username'] == user_key)
+                                    &
+                                    (email_hash_df['email_hash'] != current_email_hash)]
+
+
+    if len(other_past_email_hashes) > 0:
+        for email_hash in list(other_past_email_hashes):
+            # get all the users that used this specific email hash, but is not the given user
+            shared_users_series = email_hash_df.loc[(email_hash_df['username'] != user_key)
+                                                    &
+                                                    (email_hash_df['email_hash'] == email_hash)]
+            email_users_dict[email_hash] = list(shared_users_series)            
+
+
+    # reconcile / add the current email address;
+    ## thing is, this is going to be multithreading, so... it does become a little bit of an issue;
+
+    # construct and return the response
+
 
 
 
@@ -462,8 +532,6 @@ def calc_invited_gameplay_numbers(dataframe):
     invited_total = invited_balance_change + invited_escrow_change
 
     return invited_players, invited_total
-
-
 
 
 def calc_goals_and_awards(dataframe):
@@ -594,18 +662,13 @@ ORDER BY time DESC
 
 # basic testing of the calculations on a test CSV file
 if __name__ == '__main__':
-    script_path = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1])
-
-
     # # test the audit(dataframe) function
-    # test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "DLS_inviter.csv"
-    # test_data = pd.read_csv(test_path)
-    # print(audit(test_data))
+    test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "DLS_inviter.csv"
+    test_data = pd.read_csv(test_path)
+    print(audit(test_data))
 
     # # refresh the audit queries in case it has changed.
-    # refresh_athena_query()
-
-
+    refresh_athena_query()
 
 
 
@@ -615,6 +678,8 @@ if __name__ == '__main__':
     In order to update this, execute the following query, download the results and put it in the current directory where script is (CASHOTU_AUDITING/V2/) as email_pre_hash.csv:
     The hash itself will be shared on slack, please replace it.
 
+
+
 /* GENERAL - username-payee table */
 /* Manual input variables marked between [brackets] - please input [USERNAME] [DEST_SERVER], remove the brackets after input */
 
@@ -623,8 +688,11 @@ WHERE type = 'CashoutFinish'
 AND NOT iserror
 ORDER BY time DESC
 
+
+
+    UNCOMMENT THE BELOW code ONLY if you have completed the steps above and are ready to refresh the email hashes completely or use a new hash key.
     """
-    ## read the CSV into pd
+    ## read the CSV into a dataframe
     unhashed_emails_csv_path = script_path + os.path.sep + "email_pre_hash.csv"
     unhashed_email_df = pd.read_csv(unhashed_emails_csv_path)
     # print(unhashed_email_df)
