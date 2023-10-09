@@ -34,7 +34,10 @@ for filename in csv_filenames:
 time = datetime.datetime.now().strftime('%Y/%m/%d %Y:%M %p')
 today = datetime.datetime.now().strftime('%Y-%m-%d')
 response_string = f"AUDIT DATE: {time}\n---------------\n"
+email_hash_df = pd.read_csv(audits.SCRIPT_PATH + os.path.sep + "email_hash.csv")
 response_lock = Lock()
+
+
 
 # define the main function to audit the code, in a mulitthreaded manner
 def audit_csv(csv_path):
@@ -43,6 +46,8 @@ def audit_csv(csv_path):
     """
     # access the global variable
     global response_string
+    global email_hash_df
+
     # process the audit
     df = pd.read_csv(csv_path, low_memory=False)
     result = audits.audit(df)

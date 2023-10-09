@@ -47,7 +47,7 @@ FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_typ
 
 SCRIPT_PATH = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1]) # path of the current script itself;
 
-EMAIL_HASH = "****" # please replace with hash from slack.
+EMAIL_HASH_KEY = "****" # please replace with hash from slack.
 
 
 
@@ -193,7 +193,7 @@ Money flow between invitees (amount|%): {invited_total}|{check_pairs['invite_pct
 
 
 # helper functions
-def anonymize_email(email, secret_key=EMAIL_HASH):
+def anonymize_email(email, secret_key=EMAIL_HASH_KEY):
     """
     anonymize_email(email, secret_key): Anonymize an email using a hash function and a secret key.
 
