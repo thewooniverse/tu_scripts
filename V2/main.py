@@ -5,12 +5,21 @@ import os
 from threading import Thread, Lock
 from pathlib import Path
 import shutil
+import email_audits
+
+
 
 
 """
 V2 Notes:
 
-I must do the two audits separately, and construct them separately.
+/// alternate approach (best of both worlds)
+1 - read the user dataframes in main.py;
+2 - extract run the email audits separately, hashing and audits fully in main.py but in a separate thread using a separate lock.
+3 - then, pass the results of the email audits data INTO the audits.py so that it can go through the flaggign and string constrution process.
+
+THIS STEP IS DONE;
+Now, I need to renew the audits and get the right columns for the given player.
 
 """
 
@@ -34,8 +43,11 @@ for filename in csv_filenames:
 time = datetime.datetime.now().strftime('%Y/%m/%d %Y:%M %p')
 today = datetime.datetime.now().strftime('%Y-%m-%d')
 response_string = f"AUDIT DATE: {time}\n---------------\n"
-email_hash_df = pd.read_csv(audits.SCRIPT_PATH + os.path.sep + "email_hash.csv")
 response_lock = Lock()
+
+email_hash_df = pd.read_csv(audits.SCRIPT_PATH + os.path.sep + "email_hash.csv")
+email_hash_df_lock = Lock()
+
 
 
 
@@ -48,11 +60,32 @@ def audit_csv(csv_path):
     global response_string
     global email_hash_df
 
-    # process the audit
+    # read the dataframe
     df = pd.read_csv(csv_path, low_memory=False)
-    result = audits.audit(df)
 
-    # with the lock, edit the response string
+
+    # get the email_hash_df_lock() before reading and handling the email_hash dataframe
+    with email_hash_df_lock:
+        # call email_audits and extract the username and email from the dataframe by using the audits.py functions within email_audits.py
+        username, email_hash = email_audits.extract_current_username_email(df)
+
+        # concatenate to the email_hash_df so that it may be used;
+        username_emailhash_dict = {
+            "username": [username],
+            "email_hash": [email_hash]
+        }
+        new_entries = pd.DataFrame(username_emailhash_dict)
+        concatenated_df = pd.concat(new_entries, email_hash_df)
+        email_hash_df = concatenated_df
+
+        # then search against it with the existing email dataframe
+        email_audit_result = email_audits.check_paypal_sharing(username, email_hash, email_hash_df)
+
+    # process the audit with relevant dataframe, and email audits;
+    result = audits.audit(df, email_audit_result)
+    
+
+    # with the lock, edit the response string for the whole txt file / folder
     with response_lock:
         response_string += result
     
@@ -83,3 +116,9 @@ for orig_path in csv_paths:
     filename = orig_path.split(os.path.sep)[-1]
     dest_path = csvs_path+os.path.sep+"audited_CSVs"+os.path.sep+filename
     shutil.move(orig_path, dest_path)
+
+
+# update the email_hash.csv file itself with new dataframe;
+
+
+

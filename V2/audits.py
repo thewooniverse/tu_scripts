@@ -2,13 +2,12 @@ import os
 import pandas as pd
 import numpy as np
 import datetime
-import hashlib
 
 
 
 """
 TODO:
-Test with refreshed query!
+
 """
 
 
@@ -20,7 +19,7 @@ COLUMNS = ['time', 'type', 'username', 'userid', 'deviceid', 'istransaction',
           'prevbalance','newbalance', 'prevescrow', 'newescrow', 'balancechange', 'escrowchange',
           'originalprizetype', 'awardedprizetype', 'awardedprizeamount',
           'usedpowerup',
-        'iserror', 'percentage', 'cashamount', 'charityamount', 'count', 'payee']
+          'iserror', 'percentage', 'cashamount', 'charityamount', 'count', 'payee']
 
 
 EXCLUDED_EVENTS = ['ClientEvent', 'MakeMove', 'GameBegin', 'AdStart', 
@@ -40,6 +39,10 @@ FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_typ
                    'matchup_tpg': 35, # if their take per game is above 10cents.
                    "current_year_cash_taken": 60000, # if the user has taken more than 600$ worth of cash from the system, flag for W9
 
+                   "sharers_pct": 50, # allow up to 50% of money flow from paypal address sharers
+                   "number_of_addresses": 2, # allow up to 2 paypal addresses per person, anything above, flag
+                   "number_of_sharers": 2, # allow up to 2 usernames to have been shared by all paypals used in past, anything above, flag.
+
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
                    # that is continuously added to (and therefore, the number dynmaically reflects) with each audit that is run.
 }
@@ -47,15 +50,13 @@ FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_typ
 
 SCRIPT_PATH = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1]) # path of the current script itself;
 
-EMAIL_HASH_KEY = "****" # please replace with hash from slack.
-
 
 
 
 
 
 # Audit Function
-def audit(dataframe):
+def audit(dataframe, email_audit_results):
     """
     audit(dataframe) is the main function called to audit a given cashout.
     The function must be passed a valid dataframe from an athena query.
@@ -63,6 +64,7 @@ def audit(dataframe):
     Returns: text string with the audit notes for given player's most recent cashout.
     """
     # prase and clean up the dataframe for processing, reset the indexes
+    # df should be already time ordered from the query itself;
     dataframe = filter_and_order(dataframe)
     dataframe['time'] = pd.to_datetime(dataframe['time'])
     dataframe.set_index('time', inplace=True)
@@ -105,36 +107,56 @@ def audit(dataframe):
     total_audited_value = money_from_livegames + money_from_matchups + total_flow_tourneys + money_from_goals + money_from_megaspins + money_from_awards + money_from_week1 + money_from_admin
 
 
+    # unpack and process the email audit data here
+    number_of_addresses = len(email_audit_results.keys())
+    address_sharers = []
+    for sharers in email_audit_results.values():
+        address_sharers.append(sharers)
+    number_of_sharers = len(address_sharers)
+
+    ## calculate the amount of money flow to / against these players
+    sharer_total_flow, n_games_sharers = calc_payee_sharers_data(cashout_dataframe, address_sharers)
+    
+
+
 
     # run the flags and checks:
     check_pairs = { #key-value pair of "data": ["value", (flagged-True|False), default is false)"], that will be used by check_flag()
+        "current_year_cash_taken": [total_taken_in_cash_current_year, False],
         "pct_matchup": [calc_pct(money_from_matchups, total_audited_value), False],
         "pct_admin": [calc_pct(money_from_admin, total_audited_value), False],
         'invite_pct': [calc_pct(invited_total, total_audited_value), False],
+
         "matchup_wr": [calc_pct(n_matchup_wins, n_matchups), False],
         "livegame_wr": [calc_pct(n_livegame_wins, n_livegames), False],
         "livegame_tpg": [livegame_tpg, False],
         "matchup_tpg": [matchup_tpg, False],
-        "current_year_cash_taken": [total_taken_in_cash_current_year, False]
+        
+        'sharers_pct': [calc_pct(sharer_total_flow, total_audited_value), False], ####
+        'number_of_addresses': [number_of_addresses, False],
+        'number_of_sharers': [number_of_sharers, False],
     }
+
+
     # loop through check_pairs.items(), if it returns True ->  and edit the value for the key.
     flagged_flags = []
 
     for key,value in check_pairs.items():
         value, flag = check_flag(key,value)
+        
         if flag:
+            # if it is flag = True, then we convert the string to identify / message the flagging;
             flagged_flags.append(key)
             check_pairs[key] = f"|>|>{value[0]}|>|>"
         else:
             check_pairs[key] = f"{value[0]}"
-    
-    status = determine_status(flagged_flags)
 
     flag_strings = ""
     for flag in flagged_flags:
         flag_string = f"\n{flag}: {get_flag_message(flag)}"
         flag_strings += flag_string
-
+    
+    status = determine_status(flagged_flags)
 
 
     # construct the string and return the string
@@ -146,17 +168,22 @@ Audited Value: {total_audited_value}
 Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
 Cashout Date: {ts1}
 Prev Cashout Date: {ts2}
-----------
+----BOT VERDICT----
+Audit Bot Verdict: {status}
+{flag_strings}
+
+----LIFETIME DATA----
 Lifetime Cashouts total | cash | donated: {total_cashed_out_value} | {total_taken_in_cash} | {total_donated}
 Cash taken this year: {check_pairs['current_year_cash_taken']}
 Lifetime Livegame TPG: {lifetime_livegame_tpg}
 Lifetime Livegames played: {lifetime_n_livegames}
 Lifetime Livegame Winrate: {calc_pct(lifetime_n_livegame_wins,lifetime_n_livegames)} %
 Cashout Count: {number_of_cashouts}
-----------
-Audit Bot Verdict: {status}
-{flag_strings}
-----------
+
+# of addresses (paypal): {check_pairs['number_of_addresses']}
+# of users sharing per address: {check_pairs['number_of_sharers']}
+
+
 
 Cashout Source Breakdown:
 |- Amount = % of total won
@@ -185,40 +212,14 @@ Top 3 players won against:
 
 Invited Players: {invited_players}
 Money flow between invitees (amount|%): {invited_total}|{check_pairs['invite_pct']}%\n\n
+
+Address Sharers (PayPal): {", ".join(address_sharers)}
+# of games against Sharers: {n_games_sharers}
+Net flow against Sharers (amount|%): {sharer_total_flow} | {check_pairs['sharers_pct']}
+
 """
     return response_string
 
-
-
-
-
-# helper functions
-def anonymize_email(email, secret_key=EMAIL_HASH_KEY):
-    """
-    anonymize_email(email, secret_key): Anonymize an email using a hash function and a secret key.
-
-    Args:
-    - email (str): Email address to be anonymized.
-    - secret_key (str): Secret key used for anonymization.
-
-    Returns:
-    - str: Anonymized hash representation of the email.
-    """
-    
-    # Combine the email and the secret key
-    combined = str(email) + str(secret_key)
-    
-    # Generate a SHA256 hash of the combined string
-    hash_obj = hashlib.sha256(combined.encode())
-    
-    # Return the hexadecimal representation of the hash
-    return hash_obj.hexdigest()
-
-def reconcile_email_hash():
-    """
-    reconcile_email_hash():
-    """
-    pass
 
 
 
@@ -237,10 +238,25 @@ def get_flag_message(flag):
                    'livegame_tpg': "Take per game is too high, user is too profitable", # if their take per game is above 10cents.
                    'matchup_tpg': "Take per game is too high, user is too profitable", # if their take per game is above 10cents.
                    "current_year_cash_taken": "User needs to sign a W9 form or prove they are outside of US",
+
+
+                   "sharers_pct": "Too much money made from users who previously used same PayPal", # allow up to 50% of money flow from paypal address sharers
+                   "number_of_addresses": "Too many PayPal accounts associated, investigate.", # allow up to 2 paypal addresses per person, anything above, flag
+                   "number_of_sharers": "Too many accounts associated with previously used PayPal addresses, investigate.", # allow up to 2 usernames to have been shared by all paypals used in past, anything above, flag.
+
+
+
+
+
+
+
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
                    # that is continuously added to with each audit that is run.
                     }
     return flag_messages[flag]
+
+
+
 
 def check_flag(info_type, value):
     """
@@ -257,6 +273,7 @@ def determine_status(flags):
         return f"Flagged for: {', '.join(flags)}"
     elif len(flags) > 3:
         return f"Rejected for: {', '.join(flags)}"
+
 
 
 # dataframe parsing and cleanup functions:
@@ -361,12 +378,6 @@ def get_lifetime_cashout_data(dataframe):
 
 
 
-
-
-
-
-
-
 def get_session_data():
     """
     session_data(): takes a gameplay dataframe and calculates their session data to determine whether they appear to be a bot or not.
@@ -380,59 +391,55 @@ def get_session_data():
 
 
 
-def check_paypal_sharing(user_key, email_address):
+
+
+# helper functions for email hashing and file maintenance;
+def anonymize_email(email, secret_key=EMAIL_HASH_KEY):
     """
-    check_paypal_sharing(): checks fo
-    user_key can be both a userid or username. By default username is used, however, in the future to make the system more robust towards edge cases userid should be used to key to account for username changes.
+    anonymize_email(email, secret_key): Anonymize an email using a hash function and a secret key.
 
+    Args:
+    - email (str): Email address to be anonymized.
+    - secret_key (str): Secret key used for anonymization.
 
-    updates:
-    - email_hash.csv
-
-    returns:
-    {email_address_used: non_self_usernames}???? << need to determine the data returned; should I process it here, or unpack it later
-
-    - [list of email addresses used] - if none, the length of this is 1
-    - [list of usernames found to be sharing email hash of current email or any other in the past] - empty list [] is 
+    Returns:
+    - str: Anonymized hash representation of the email.
     """
-    # hash the email passed (or call it before this function is called?)
-    current_email_hash = anonymize_email(email_address)
-
-    # read the current email_hash.csv
-    current_email_hash_path = SCRIPT_PATH + os.path.sep + "email_hash.csv"
-    email_hash_df = pd.read_csv(current_email_hash_path)
-
-    # check against it to see if any users (username) has shared this email hash, loop through;
-    current_email_shared_users = email_hash_df.loc[(email_hash_df['username'] != user_key)
-                                     &
-                                     (email_hash_df['email_hash'] == current_email_hash)]
     
-    email_users_dict = {
-        # if there are no collusions for each email hash, the value for each email hash key should be []; email_hash: [], if there are other users it will be email_hash: [username1, username2]
-        current_email_hash: list(current_email_shared_users)
-        }
+    # Combine the email and the secret key
+    combined = str(email) + str(secret_key)
     
+    # Generate a SHA256 hash of the combined string
+    hash_obj = hashlib.sha256(combined.encode())
+    
+    # Return the hexadecimal representation of the hash
+    return hash_obj.hexdigest()
+
+def reconcile_email_hash():
+    """
+    reconcile_email_hash():
+    """
+    pass
 
 
-    # check against dataframe also to see if the player has used any other emails in the past that is not the current email;
-    other_past_email_hashes = email_hash_df.loc[(email_hash_df['username'] == user_key)
-                                    &
-                                    (email_hash_df['email_hash'] != current_email_hash)]
 
 
-    if len(other_past_email_hashes) > 0:
-        for email_hash in list(other_past_email_hashes):
-            # get all the users that used this specific email hash, but is not the given user
-            shared_users_series = email_hash_df.loc[(email_hash_df['username'] != user_key)
-                                                    &
-                                                    (email_hash_df['email_hash'] == email_hash)]
-            email_users_dict[email_hash] = list(shared_users_series)            
 
 
-    # reconcile / add the current email address;
-    ## thing is, this is going to be multithreading, so... it does become a little bit of an issue;
 
-    # construct and return the response
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -526,12 +533,42 @@ def calc_invited_gameplay_numbers(dataframe):
     returns: top x players in string format
     """
     invited_players = list(dataframe.loc[dataframe['type'] == 'SetInviter', 'username'])
+    # this also catches the inviter of the given user;
+
     games_against_invited_df = dataframe.loc[dataframe['opponentusername'].isin(invited_players)]
     invited_balance_change = games_against_invited_df['balancechange'].sum()
     invited_escrow_change = games_against_invited_df['escrowchange'].sum()
     invited_total = invited_balance_change + invited_escrow_change
 
     return invited_players, invited_total
+
+
+def calc_payee_sharers_data(dataframe, user_list):
+    """
+    calc_payee_sharer_data(dataframe, user_list):
+    Takes the cashout_dataframe, as well as the list of users that the given player has shared paypal with and calculates the gameplay data against them.
+
+    returns:
+    - total_money_flow
+    - number_of_games
+
+    """
+    games_against_payee_sharers = dataframe.loc[dataframe['opponentusername'].isin(user_list)]
+    sharers_balance_change = games_against_payee_sharers['balancechange'].sum()
+    sharers_escrow_change = games_against_payee_sharers['escrowchange'].sum()
+    sharers_total = sharers_balance_change + sharers_escrow_change
+
+    return sharers_total, games_against_payee_sharers.shape[0]
+
+
+
+
+
+
+
+
+
+
 
 
 def calc_goals_and_awards(dataframe):
@@ -693,7 +730,7 @@ ORDER BY time DESC
     UNCOMMENT THE BELOW code ONLY if you have completed the steps above and are ready to refresh the email hashes completely or use a new hash key.
     """
     ## read the CSV into a dataframe
-    unhashed_emails_csv_path = script_path + os.path.sep + "email_pre_hash.csv"
+    unhashed_emails_csv_path = SCRIPT_PATH + os.path.sep + "email_pre_hash.csv"
     unhashed_email_df = pd.read_csv(unhashed_emails_csv_path)
     # print(unhashed_email_df)
 
@@ -703,7 +740,7 @@ ORDER BY time DESC
     print(hashed_email_df)
 
     ## save the new dataframe into email_hash.xlsx
-    email_hash_csv_dest_path = script_path + os.path.sep + "email_hash.csv"
+    email_hash_csv_dest_path = SCRIPT_PATH + os.path.sep + "email_hash.csv"
     hashed_email_df.to_csv(email_hash_csv_dest_path)
 
 
