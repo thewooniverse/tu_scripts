@@ -43,6 +43,8 @@ FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_typ
                    "number_of_addresses": 2, # allow up to 2 paypal addresses per person, anything above, flag
                    "number_of_sharers": 2, # allow up to 2 usernames to have been shared by all paypals used in past, anything above, flag.
 
+                   'max_session_legnth': 8, # allow up to 16 hours of playtime / day, humanly reasonable amount of gameplay in a given day;
+
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
                    # that is continuously added to (and therefore, the number dynmaically reflects) with each audit that is run.
 }
@@ -75,6 +77,11 @@ def audit(dataframe, email_audit_results):
 
     ## get lifetime gameplay data
     lifetime_money_from_livegames, lifetime_n_livegames, lifetime_n_livegame_wins, lifetime_livegame_tpg = calc_livegame_numbers(dataframe)
+
+
+    ## get sessions data;
+    avg_games, max_games = get_sessions_data(dataframe)
+    avg_session_length, max_session_length = calc_playtime(avg_games), calc_playtime(max_games)
 
 
     # get cashout specific data
@@ -118,7 +125,6 @@ def audit(dataframe, email_audit_results):
         address_sharers_str += f"\n{key[:3]}..{key[-3:]}: {', '.join(value)}"
 
 
-
     ## calculate the amount of money flow to / against these players
     sharer_total_flow, n_games_sharers = calc_payee_sharers_data(cashout_dataframe, address_sharers)
     
@@ -140,6 +146,8 @@ def audit(dataframe, email_audit_results):
         'sharers_pct': [calc_pct(sharer_total_flow, total_audited_value), False], ####
         'number_of_addresses': [number_of_addresses, False],
         'number_of_sharers': [number_of_sharers, False],
+
+        'max_session_legnth': [max_session_length, False],
     }
 
 
@@ -174,21 +182,33 @@ Audited Value: {total_audited_value}
 Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
 Cashout Date: {ts1}
 Prev Cashout Date: {ts2}
+
 ----BOT VERDICT----
-Audit Bot Verdict: {status}
-{flag_strings}
+Audit Bot Verdict: {status}{flag_strings}
+
 ----LIFETIME DATA----
+-Metadata-
+Cashout Count: {number_of_cashouts}
 Lifetime Cashouts total | cash | donated: {total_cashed_out_value} | {total_taken_in_cash} | {total_donated}
 Cash taken this year: {check_pairs['current_year_cash_taken']}
+
+-Lifetime Gameplay-
 Lifetime Livegame TPG: {lifetime_livegame_tpg}
 Lifetime Livegames played: {lifetime_n_livegames}
 Lifetime Livegame Winrate: {calc_pct(lifetime_n_livegame_wins,lifetime_n_livegames)} %
-Cashout Count: {number_of_cashouts}
 
+-Payout Analysis-
 Address sharers:{address_sharers_str}
-
+---
 # of addresses (paypal): {check_pairs['number_of_addresses']}
 # of users sharing per address: {check_pairs['number_of_sharers']}
+
+-Session Analysis-
+Average Play Session (# games | length in hrs):
+{avg_games} | {avg_session_length}
+Max Play Session, hours (# games | length in hrs):
+{max_games} | {max_session_length}
+
 
 Cashout Source Breakdown:
 |- Amount = % of total won
@@ -244,7 +264,7 @@ def get_flag_message(flag):
                    "sharers_pct": "Too much money made from users who previously used same PayPal", # allow up to 50% of money flow from paypal address sharers
                    "number_of_addresses": "Too many PayPal accounts associated, investigate.", # allow up to 2 paypal addresses per person, anything above, flag
                    "number_of_sharers": "Too many accounts associated with previously used PayPal addresses, investigate.", # allow up to 2 usernames to have been shared by all paypals used in past, anything above, flag.
-
+                   'max_session_legnth': "User is playing above a humanly possible number of hours, potentially a bot.", # allow up to 16 hours of playtime / day, humanly reasonable amount of gameplay in a given day;
 
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
                    # that is continuously added to with each audit that is run.
@@ -374,16 +394,34 @@ def get_lifetime_cashout_data(dataframe):
 
 
 
-def get_session_data():
+def get_sessions_data(dataframe):
     """
-    session_data(): takes a gameplay dataframe and calculates their session data to determine whether they appear to be a bot or not.
+    get_sessions_data(): takes a gameplay dataframe and calculates their session data to determine whether they appear to be a bot or not.
 
     returns:
-    - avg_playtime_per_day
-    - avg_games_per_day
-    - avg_length_of_gameplay
+    - avg_games_per_day(int)
+    - max_games_per_day(int)
     """
-    pass
+    # filter for just gameplay
+    games_df = dataframe.loc[(dataframe['type'] == 'GameEnd')
+                             |
+                             (dataframe['type'] == 'AcknowledgeResult')]
+    
+
+    # resample and aggregate for count events in days;
+    daily_counts = games_df.resample('D').size()
+    avg_games = int(daily_counts.mean())
+    max_games = daily_counts.max()
+
+    # calculate numbers and return
+    return avg_games, max_games
+
+def calc_playtime(n_games):
+    t_minutes = n_games * 2.5
+    t_hours =round((t_minutes / 60), 2)
+
+    return t_hours
+
 
 
 
