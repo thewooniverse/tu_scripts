@@ -1,11 +1,54 @@
+# CASHOUT AUDITING SCRIPT
+Cashout auditing scripts intended to automate and streamline this liveops process.
 
-# Overview
+WARNING:
+For correct usage of email_hashes, please get the hash key use the correct key from Slack.
+
+## Usage:
+0. Get the 4 digit email_hash key from Slack, and replace the EMAIL_HASH_KEY variable line 9 of /V2/email_audits.py with it:
+1. Copy the content of /V2/current_query.txt into the Athena query, filling in the [variables] correctly
+2. Run the query and download the results, you repeat this process for all relevant cashout events
+3. Place all the CSV files into /V2/CSVs/ directory
+4. Run main.py 
+5. Use the results from the newly created audit txt file in results in /V2/results/audit_[today's date].txt
+
+
+
+NOTE:
+- email_hash.csv is updated before every git update with new data from Athena, and should be updated every time main.py is run, maintaining up-to-date data from each run.
+-- instructions to update this manually is at the bottom of email_audits.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Archived / OLD README
+# # Overview
 Cashout auditing scripts intended to automate and streamline this liveops process.
 
 V1 - is usable manually by adjusting simply the name of the target CSV file and locating it in the right directory.
 V2 - will use multithreading to target and process all CSVs placed in the relevant directory, cleanup and outputting an audit result.txt file with the username and date; into the same directory.
-
-
 
 V3 - will carry a auto-flagging and approving system based on a historic dataset of all cashouts in the past.
 

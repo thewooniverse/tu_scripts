@@ -2,7 +2,7 @@
 /* GENERAL - CASHOUT AUDIT TABLE */
 /* Manual input variables marked between [brackets] - please input [USERNAME] [DEST_SERVER], remove the brackets after input */
 
-SELECT time, type, username, userid, deviceid, istransaction, gameid, gametype, level, isbot, reason, result, endstatus, opponentusername, prevbalance, newbalance, prevescrow, newescrow, balancechange, escrowchange, originalprizetype, awardedprizetype, awardedprizeamount, usedpowerup, iserror, percentage, cashamount, charityamount, count
+SELECT time, type, username, userid, deviceid, istransaction, gameid, gametype, level, isbot, reason, result, endstatus, opponentusername, prevbalance, newbalance, prevescrow, newescrow, balancechange, escrowchange, originalprizetype, awardedprizetype, awardedprizeamount, usedpowerup, iserror, percentage, cashamount, charityamount, count, payee
 FROM [DEST_SERVER]
 WHERE (username = '[USERNAME]' OR inviterusername = '[USERNAME]')
 

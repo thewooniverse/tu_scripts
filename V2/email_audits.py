@@ -89,3 +89,35 @@ def check_paypal_sharing(user_key, email_hash, email_hash_df):
     return emailhash_user_dict
 
 
+if __name__ == "__main__":
+    # section for constructing initial email_hash.csv table containing history of hashed "username, email_hash"" columns
+    """
+    In order to update this:
+     1. execute the following query, download the results and 
+     2. put it in the current directory where script is (CASHOTU_AUDITING/V2/) as email_pre_hash.csv:
+     3. The hash itself will be shared on slack, please replace it.
+
+/* GENERAL - username-payee table */
+/* Manual input variables marked between [brackets] - please input [USERNAME] [DEST_SERVER], remove the brackets after input */
+
+SELECT username, payee
+WHERE type = 'CashoutFinish'
+AND NOT iserror
+ORDER BY time DESC
+
+    UNCOMMENT THE BELOW code ONLY if you have completed the steps above and are ready to refresh the email hashes completely or use a new hash key.
+    """
+    ## read the CSV into a dataframe
+    unhashed_emails_csv_path = SCRIPT_PATH + os.path.sep + "email_pre_hash.csv"
+    unhashed_email_df = pd.read_csv(unhashed_emails_csv_path)
+    # print(unhashed_email_df)
+
+    ## apply the hashing function to the payee column, and drop the column
+    unhashed_email_df['email_hash'] = unhashed_email_df['payee'].apply(anonymize_email)
+    hashed_email_df = unhashed_email_df[['username', 'email_hash']]
+    print(hashed_email_df)
+
+    ## save the new dataframe into email_hash.xlsx
+    email_hash_csv_dest_path = SCRIPT_PATH + os.path.sep + "email_hash.csv"
+    hashed_email_df.to_csv(email_hash_csv_dest_path)
+

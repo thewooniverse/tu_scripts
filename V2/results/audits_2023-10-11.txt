@@ -1,4 +1,4 @@
-AUDIT DATE: 2023/10/11 2023:29 PM
+AUDIT DATE: 2023/10/11 2023:41 PM
 ---------------
 
 
@@ -8,7 +8,7 @@ AUDIT DATE: 2023/10/11 2023:29 PM
 Username: Phred69
 Cashout Value: 1004.0 
 Audited Value: 1004.0
-Audit Date: 2023/10/11 2023:29 PM
+Audit Date: 2023/10/11 2023:41 PM
 Cashout Date: 2023-07-27 14:44:19.846000
 Prev Cashout Date: 2000-01-05 00:00:00
 
@@ -29,11 +29,10 @@ Lifetime Livegame Winrate: 56.0 %
 
 -Payout Analysis-
 Address sharers:
-118..364: 
 aed..fe9: Phred62, margie11
 ---
-# of addresses (paypal): 2
-# of users sharing per address: 2
+# of addresses (paypal): 1
+# of users sharing per address: 1
 
 -Session Analysis-
 Average Play Session (# games | length in hrs):
@@ -82,7 +81,7 @@ Net flow against Sharers (amount|%): 0.0 | 0.0
 Username: nai
 Cashout Value: 1361.0 
 Audited Value: 1361.0
-Audit Date: 2023/10/11 2023:29 PM
+Audit Date: 2023/10/11 2023:41 PM
 Cashout Date: 2023-02-16 12:06:01.783000
 Prev Cashout Date: 2023-02-12 04:14:38
 
@@ -106,13 +105,12 @@ Lifetime Livegame Winrate: 54.0 %
 
 -Payout Analysis-
 Address sharers:
-67a..ed2: 
-da2..1f3: 
-640..916: nai1
 107..bec: wina
+640..916: nai1
+da2..1f3: 
 ---
-# of addresses (paypal): |>|>4|>|>
-# of users sharing per address: |>|>4|>|>
+# of addresses (paypal): |>|>3|>|>
+# of users sharing per address: |>|>3|>|>
 
 -Session Analysis-
 Average Play Session (# games | length in hrs):
@@ -161,7 +159,7 @@ Net flow against Sharers (amount|%): 0.0 | 0.0
 Username: miftahurozaq
 Cashout Value: 2224.0 
 Audited Value: 2222.0
-Audit Date: 2023/10/11 2023:29 PM
+Audit Date: 2023/10/11 2023:41 PM
 Cashout Date: 2023-05-27 06:49:42.284000
 Prev Cashout Date: 2000-01-05 00:00:00
 
@@ -181,11 +179,10 @@ Lifetime Livegame Winrate: 52.0 %
 
 -Payout Analysis-
 Address sharers:
-32d..2f6: 
 f88..c03: lutvi
 ---
-# of addresses (paypal): 2
-# of users sharing per address: 2
+# of addresses (paypal): 1
+# of users sharing per address: 1
 
 -Session Analysis-
 Average Play Session (# games | length in hrs):
