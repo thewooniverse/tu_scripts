@@ -1,0 +1,188 @@
+AUDIT DATE: 2023/10/11 2023:41 PM
+---------------
+
+
+
+######################
+---OVERVIEW---
+Username: Phred69
+Cashout Value: 1004.0 
+Audited Value: 1004.0
+Audit Date: 2023/10/11 2023:41 PM
+Cashout Date: 2023-07-27 14:44:19.846000
+Prev Cashout Date: 2000-01-05 00:00:00
+----BOT VERDICT----
+Audit Bot Verdict: Flagged for: matchup_wr
+
+matchup_wr: Winrate is too high (ignore if # of games is not too high)
+----LIFETIME DATA----
+Lifetime Cashouts total | cash | donated: 1004.0 | 904.0 | 100.0
+Cash taken this year: 904.0
+Lifetime Livegame TPG: 1.0
+Lifetime Livegames played: 685
+Lifetime Livegame Winrate: 56.0 %
+Cashout Count: 0
+
+Address sharers:
+aed..fe9: margie11, Phred62
+
+# of addresses (paypal): 1
+# of users sharing per address: 1
+
+Cashout Source Breakdown:
+|- Amount = % of total won
+|-------------
+|- Mega Spins: 0.0 = 0.0%
+|- Live Games: 682.0 = 68.0%
+|- MatchUPs: 32.0 = 3.0%
+|- Goals: 280.0 = 28.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 10.0 = 1.0%
+|- Awarded (misc): 0.0 = 0.0%
+|
+|- Amount carried into cashout (escrow): 0
+|- Amount carreid forward to next (escrow): 0
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 703|675|28
+Livegame TPG: 1.01
+MatchUP TPG: 1.14
+Livegame winrate: 56.0 %
+MatchUP winrate: |>|>79.0|>|>%
+Top 3 players won against:
+zizo12345: 32.0
+mohamad25z: 32.0
+Sapphira4: 32.0
+
+Invited Players: []
+Money flow between invitees (amount|%): 0.0|0.0%
+
+# of games against Sharers: 0
+Net flow against Sharers (amount|%): 0.0 | 0.0
+######################
+
+
+
+######################
+---OVERVIEW---
+Username: nai
+Cashout Value: 1361.0 
+Audited Value: 1361.0
+Audit Date: 2023/10/11 2023:41 PM
+Cashout Date: 2023-02-16 12:06:01.783000
+Prev Cashout Date: 2023-02-12 04:14:38
+----BOT VERDICT----
+Audit Bot Verdict: Flagged for: livegame_tpg, number_of_addresses, number_of_sharers
+
+livegame_tpg: Take per game is too high, user is too profitable
+number_of_addresses: Too many PayPal accounts associated, investigate.
+number_of_sharers: Too many accounts associated with previously used PayPal addresses, investigate.
+----LIFETIME DATA----
+Lifetime Cashouts total | cash | donated: 3813.0 | 3432.0 | 381.0
+Cash taken this year: 0.0
+Lifetime Livegame TPG: 1.58
+Lifetime Livegames played: 1755
+Lifetime Livegame Winrate: 54.0 %
+Cashout Count: 2
+
+Address sharers:
+107..bec: wina
+640..916: nai1
+da2..1f3: 
+
+# of addresses (paypal): |>|>3|>|>
+# of users sharing per address: |>|>3|>|>
+
+Cashout Source Breakdown:
+|- Amount = % of total won
+|-------------
+|- Mega Spins: 0.0 = 0.0%
+|- Live Games: 1312.0 = 96.0%
+|- MatchUPs: 0.0 = 0.0%
+|- Goals: 21.0 = 2.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 0.0 = 0.0%
+|- Awarded (misc): 28.0 = 2.0%
+|
+|- Amount carried into cashout (escrow): 0
+|- Amount carreid forward to next (escrow): 0
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 112|106|6
+Livegame TPG: |>|>12.38|>|>
+MatchUP TPG: 0
+Livegame winrate: 58.0 %
+MatchUP winrate: 33.0%
+Top 3 players won against:
+UCFknight77: 512.0
+RoosterNuu: 256.0
+Sammi: 256.0
+
+Invited Players: ['wina', 'naim198', 'eruo']
+Money flow between invitees (amount|%): 0.0|0.0%
+
+# of games against Sharers: 0
+Net flow against Sharers (amount|%): 0.0 | 0.0
+######################
+
+
+
+######################
+---OVERVIEW---
+Username: miftahurozaq
+Cashout Value: 2224.0 
+Audited Value: 2222.0
+Audit Date: 2023/10/11 2023:41 PM
+Cashout Date: 2023-05-27 06:49:42.284000
+Prev Cashout Date: 2000-01-05 00:00:00
+----BOT VERDICT----
+Audit Bot Verdict: Approved
+
+----LIFETIME DATA----
+Lifetime Cashouts total | cash | donated: 2224.0 | 2002.0 | 222.0
+Cash taken this year: 2002.0
+Lifetime Livegame TPG: 0.76
+Lifetime Livegames played: 3450
+Lifetime Livegame Winrate: 52.0 %
+Cashout Count: 0
+
+Address sharers:
+f88..c03: lutvi
+
+# of addresses (paypal): 1
+# of users sharing per address: 1
+
+Cashout Source Breakdown:
+|- Amount = % of total won
+|-------------
+|- Mega Spins: 50.0 = 2.0%
+|- Live Games: 1922.0 = 86.0%
+|- MatchUPs: 0.0 = 0.0%
+|- Goals: 190.0 = 9.0%
+|- Tournaments (won|spent|net): 0.0|0.0|0.0 = 0.0%
+|- Admin added: 0.0 = 0.0%
+|- Week1 prize(old): 60.0 = 3.0%
+|- Awarded (misc): 0.0 = 0.0%
+|
+|- Amount carried into cashout (escrow): 0
+|- Amount carreid forward to next (escrow): 0
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): 403|403|0
+Livegame TPG: 4.77
+MatchUP TPG: 0
+Livegame winrate: 55.0 %
+MatchUP winrate: 0%
+Top 3 players won against:
+yulia: 2144.0
+iloveher100: 96.0
+Dexterball: 64.0
+
+Invited Players: ['miftahurozaq']
+Money flow between invitees (amount|%): 0.0|0.0%
+
+# of games against Sharers: 0
+Net flow against Sharers (amount|%): 0.0 | 0.0
+######################

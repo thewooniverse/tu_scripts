@@ -113,6 +113,11 @@ def audit(dataframe, email_audit_results):
     for sharers in email_audit_results.values():
         address_sharers.append(sharers)
     number_of_sharers = len(address_sharers)
+    address_sharers_str = ""
+    for key, value in email_audit_results.items():
+        address_sharers_str += f"\n{key[:3]}..{key[-3:]}: {', '.join(value)}"
+
+
 
     ## calculate the amount of money flow to / against these players
     sharer_total_flow, n_games_sharers = calc_payee_sharers_data(cashout_dataframe, address_sharers)
@@ -161,6 +166,7 @@ def audit(dataframe, email_audit_results):
 
     # construct the string and return the string
     response_string = f"""\n\n
+######################
 ---OVERVIEW---
 Username: {username}
 Cashout Value: {cashout_value} 
@@ -171,7 +177,6 @@ Prev Cashout Date: {ts2}
 ----BOT VERDICT----
 Audit Bot Verdict: {status}
 {flag_strings}
-
 ----LIFETIME DATA----
 Lifetime Cashouts total | cash | donated: {total_cashed_out_value} | {total_taken_in_cash} | {total_donated}
 Cash taken this year: {check_pairs['current_year_cash_taken']}
@@ -180,10 +185,10 @@ Lifetime Livegames played: {lifetime_n_livegames}
 Lifetime Livegame Winrate: {calc_pct(lifetime_n_livegame_wins,lifetime_n_livegames)} %
 Cashout Count: {number_of_cashouts}
 
+Address sharers:{address_sharers_str}
+
 # of addresses (paypal): {check_pairs['number_of_addresses']}
 # of users sharing per address: {check_pairs['number_of_sharers']}
-
-
 
 Cashout Source Breakdown:
 |- Amount = % of total won
@@ -200,7 +205,6 @@ Cashout Source Breakdown:
 |- Amount carried into cashout (escrow): {balance_carried_forward}
 |- Amount carreid forward to next (escrow): {balance_carried_in}
 
-
 --- GamePlay Analysis ---
 Number of Games to Cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
 Livegame TPG: {check_pairs['livegame_tpg']}
@@ -209,14 +213,11 @@ Livegame winrate: {check_pairs['livegame_wr']} %
 MatchUP winrate: {check_pairs['matchup_wr']}%
 Top 3 players won against:
 {top3_players}
-
 Invited Players: {invited_players}
-Money flow between invitees (amount|%): {invited_total}|{check_pairs['invite_pct']}%\n\n
-
-Address Sharers (PayPal): {", ".join(address_sharers)}
+Money flow between invitees (amount|%): {invited_total}|{check_pairs['invite_pct']}%\n
 # of games against Sharers: {n_games_sharers}
 Net flow against Sharers (amount|%): {sharer_total_flow} | {check_pairs['sharers_pct']}
-
+######################
 """
     return response_string
 
@@ -243,11 +244,6 @@ def get_flag_message(flag):
                    "sharers_pct": "Too much money made from users who previously used same PayPal", # allow up to 50% of money flow from paypal address sharers
                    "number_of_addresses": "Too many PayPal accounts associated, investigate.", # allow up to 2 paypal addresses per person, anything above, flag
                    "number_of_sharers": "Too many accounts associated with previously used PayPal addresses, investigate.", # allow up to 2 usernames to have been shared by all paypals used in past, anything above, flag.
-
-
-
-
-
 
 
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
@@ -393,36 +389,6 @@ def get_session_data():
 
 
 
-# helper functions for email hashing and file maintenance;
-def anonymize_email(email, secret_key=EMAIL_HASH_KEY):
-    """
-    anonymize_email(email, secret_key): Anonymize an email using a hash function and a secret key.
-
-    Args:
-    - email (str): Email address to be anonymized.
-    - secret_key (str): Secret key used for anonymization.
-
-    Returns:
-    - str: Anonymized hash representation of the email.
-    """
-    
-    # Combine the email and the secret key
-    combined = str(email) + str(secret_key)
-    
-    # Generate a SHA256 hash of the combined string
-    hash_obj = hashlib.sha256(combined.encode())
-    
-    # Return the hexadecimal representation of the hash
-    return hash_obj.hexdigest()
-
-def reconcile_email_hash():
-    """
-    reconcile_email_hash():
-    """
-    pass
-
-
-
 
 
 
@@ -461,7 +427,10 @@ def calc_tpg(amt, n_games):
     with error handling on when zero values are passed.
     """
     try:
-        return round(amt/n_games, 2)
+        if amt > 0:
+            return round(amt/n_games, 2)
+        else:
+            return 0
     except ZeroDivisionError:
         return 0
 
@@ -700,7 +669,7 @@ ORDER BY time DESC
 # basic testing of the calculations on a test CSV file
 if __name__ == '__main__':
     # # test the audit(dataframe) function
-    test_path = script_path + os.path.sep + "CSVs" + os.path.sep + "DLS_inviter.csv"
+    test_path = SCRIPT_PATH + os.path.sep + "CSVs" + os.path.sep + "DLS_inviter.csv"
     test_data = pd.read_csv(test_path)
     print(audit(test_data))
 

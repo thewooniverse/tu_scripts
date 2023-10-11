@@ -6,7 +6,7 @@ import audits
 
 # constants
 SCRIPT_PATH = f'{os.path.sep}'.join(__file__.split(f'{os.path.sep}')[:-1]) # path of the current script itself;
-EMAIL_HASH_KEY = "3113"
+EMAIL_HASH_KEY = "****" # please ask for the EMAIL HASH on slack.
 
 
 
@@ -59,20 +59,22 @@ def check_paypal_sharing(user_key, email_hash, email_hash_df):
     By default username is used, however, in the future to make the system more robust towards 
     edge cases userid should be used to key to account for username changes.
     
-
     returns:
     - {email_hash: [username1, usernam2] , email_hash2: [username3, username1]}  -- username list for each email hash excludes
     """
+    # email hashes are in a list format
     email_hashes = [email_hash]
+    # the final returned value will be in a dict format format where email_hash: [list of usernames]
     emailhash_user_dict = {email_hash: [],}
-
 
     # first we check whether this username has used any other email hashes in the past, excluding the one passed into the function.
     other_past_email_hashes = email_hash_df.loc[(email_hash_df['username'] == user_key)
                                                 &
                                                 (email_hash_df['email_hash'] != email_hash), 'email_hash']
-    email_hashes.append(list(other_past_email_hashes))
 
+    for hash in set(list(other_past_email_hashes)):
+        email_hashes.append(hash)
+    
 
     # for each email_hash, check if there has been any users sharing any email;
     for hash in email_hashes:
@@ -80,9 +82,10 @@ def check_paypal_sharing(user_key, email_hash, email_hash_df):
                                                &
                                                (email_hash_df['email_hash'] == hash), "username"]
         
-        emailhash_user_dict[hash] = list(shared_users_list)
-    
-    
+
+        emailhash_user_dict[hash] = list(set(list(shared_users_list)))
+
+
     return emailhash_user_dict
 
 

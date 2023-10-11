@@ -19,7 +19,12 @@ V2 Notes:
 3 - then, pass the results of the email audits data INTO the audits.py so that it can go through the flaggign and string constrution process.
 
 THIS STEP IS DONE;
+Integrate the script with the auditing / flagging system to unpack the email auditing results.
+Then, also run collusion tests on them as well;
+
+
 Now, I need to renew the audits and get the right columns for the given player.
+Then test out different cases.
 
 """
 
@@ -45,7 +50,8 @@ today = datetime.datetime.now().strftime('%Y-%m-%d')
 response_string = f"AUDIT DATE: {time}\n---------------\n"
 response_lock = Lock()
 
-email_hash_df = pd.read_csv(audits.SCRIPT_PATH + os.path.sep + "email_hash.csv")
+email_hash_path = audits.SCRIPT_PATH + os.path.sep + "email_hash.csv"
+email_hash_df = pd.read_csv(email_hash_path)
 email_hash_df_lock = Lock()
 
 
@@ -75,7 +81,7 @@ def audit_csv(csv_path):
             "email_hash": [email_hash]
         }
         new_entries = pd.DataFrame(username_emailhash_dict)
-        concatenated_df = pd.concat(new_entries, email_hash_df)
+        concatenated_df = pd.concat([new_entries, email_hash_df])
         email_hash_df = concatenated_df
 
         # then search against it with the existing email dataframe
@@ -110,15 +116,16 @@ result_path = results_directory + f"audits_{today}.txt"
 with open(result_path, 'w') as wf:
     wf.write(response_string)
 
-# cleanup for CSVs folder;
-for orig_path in csv_paths:
+# cleanup for CSVs folder by moving the files into audited_CSVs
+# for orig_path in csv_paths:
     
-    filename = orig_path.split(os.path.sep)[-1]
-    dest_path = csvs_path+os.path.sep+"audited_CSVs"+os.path.sep+filename
-    shutil.move(orig_path, dest_path)
+#     filename = orig_path.split(os.path.sep)[-1]
+#     dest_path = csvs_path+os.path.sep+"audited_CSVs"+os.path.sep+filename
+#     shutil.move(orig_path, dest_path)
 
 
 # update the email_hash.csv file itself with new dataframe;
+email_hash_df.to_csv(email_hash_path)
 
 
 
