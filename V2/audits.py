@@ -32,18 +32,18 @@ FLAG_THRESHOLD = { #THRESHOLD holds the "info_type": "threshold" pairs. Info_typ
                    # and "threshold" being the value over which it is flagged.
                    "pct_matchup": 50, # if they won above 50% of cashout from matchups
                    "pct_admin": 50, # if they won above 50% of cashout from admin
-                   'matchup_wr': 70, # if their matchup winrate is above 70% (ignore if less than 10 games)
-                   'livegame_wr': 75, # if their livegames winrate is above 75%
-                   'invite_pct': 25, # if they won above 60% of cashout from gameplay with invited players
-                   'livegame_tpg': 10, # if their take per game is above 10cents.
-                   'matchup_tpg': 35, # if their take per game is above 10cents.
+                   'matchup_wr': 75, # if their matchup winrate is above 70% (ignore if less than 10 games)
+                   'livegame_wr': 80, # if their livegames winrate is above 75%
+                   'invite_pct': 50, # if they won above 60% of cashout from gameplay with invited players
+                   'livegame_tpg': 15, # if their take per game is above 10cents.
+                   'matchup_tpg': 100, # if their take per game is above 10cents.
                    "current_year_cash_taken": 60000, # if the user has taken more than 600$ worth of cash from the system, flag for W9
 
                    "sharers_pct": 50, # allow up to 50% of money flow from paypal address sharers
                    "number_of_addresses": 2, # allow up to 2 paypal addresses per person, anything above, flag
                    "number_of_sharers": 2, # allow up to 2 usernames to have been shared by all paypals used in past, anything above, flag.
 
-                   'max_session_legnth': 8, # allow up to 16 hours of playtime / day, humanly reasonable amount of gameplay in a given day;
+                   'max_session_legnth': 16, # allow up to 16 hours of playtime / day, humanly reasonable amount of gameplay in a given day;
 
                    # eventually, this data should be imported and calculated from a database file (csv or otherwise)
                    # that is continuously added to (and therefore, the number dynmaically reflects) with each audit that is run.
@@ -73,7 +73,7 @@ def audit(dataframe, email_audit_results):
 
     # get lifetime data
     ## get the lifetime cashout data
-    total_cashed_out_value, total_taken_in_cash, total_donated, total_taken_in_cash_current_year = get_lifetime_cashout_data(dataframe)
+    total_cashed_out_value, total_taken_in_cash, total_donated, total_taken_in_cash_current_year, earliest_event_ts = get_lifetime_cashout_data(dataframe)
 
     ## get lifetime gameplay data
     lifetime_money_from_livegames, lifetime_n_livegames, lifetime_n_livegame_wins, lifetime_livegame_tpg = calc_livegame_numbers(dataframe)
@@ -174,17 +174,36 @@ def audit(dataframe, email_audit_results):
 
     # construct the string and return the string
     response_string = f"""\n\n
-######################
----OVERVIEW---
+###### SUMMARY ######
+Username: {username}
+Cashout Value: {cashout_value} 
+# games to cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
+Cashout Livegame TPG: {check_pairs['livegame_tpg']}
+Cashout MatchUP TPG: {check_pairs['matchup_tpg']}
+Cashout breakdown %:
+- Livegame: {calc_pct(money_from_livegames, total_audited_value)}%
+- MatchUP: {check_pairs['pct_matchup']}%
+- Goals: {calc_pct(money_from_goals, total_audited_value)}%
+- Tournament: {calc_pct(total_flow_tourneys, total_audited_value)}%
+- Mega Spins: {calc_pct(money_from_megaspins, total_audited_value)}%
+- Admin: {check_pairs['pct_admin']}%
+
+Lifetime Livegames played: {lifetime_n_livegames}
+Lifetime Livegame TPG: {lifetime_livegame_tpg}
+Join Date: {earliest_event_ts}
+
+----BOT VERDICT----
+Audit Bot Verdict: {status}{flag_strings}
+#####################
+
+
+---DETAILED OVERVIEW----
 Username: {username}
 Cashout Value: {cashout_value} 
 Audited Value: {total_audited_value}
 Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
 Cashout Date: {ts1}
 Prev Cashout Date: {ts2}
-
-----BOT VERDICT----
-Audit Bot Verdict: {status}{flag_strings}
 
 ----LIFETIME DATA----
 -Metadata-
@@ -210,7 +229,7 @@ Max Play Session, hours (# games | length in hrs):
 {max_games} | {max_session_length}
 
 
-Cashout Source Breakdown:
+Detailed Cashout Source Breakdown:
 |- Amount = % of total won
 |-------------
 |- Mega Spins: {money_from_megaspins} = {calc_pct(money_from_megaspins, total_audited_value)}%
@@ -227,8 +246,7 @@ Cashout Source Breakdown:
 
 --- GamePlay Analysis ---
 Number of Games to Cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
-Livegame TPG: {check_pairs['livegame_tpg']}
-MatchUP TPG: {check_pairs['matchup_tpg']}
+
 Livegame winrate: {check_pairs['livegame_wr']} %
 MatchUP winrate: {check_pairs['matchup_wr']}%
 Top 3 players won against:
@@ -368,6 +386,8 @@ def get_lifetime_cashout_data(dataframe):
     """
     get_lifetime_cashout_data(dataframe): takes a dataframe, and returns lifetime cashout data around number of cashouts, total cashed out and W9 / Tax implications and data.
     """
+    earliest_event = dataframe.index[-1]
+
     # get the cashouts table and extract data
     cashouts = dataframe.loc[(dataframe['type'].str.contains('CashOutFinish'))
               &
@@ -390,7 +410,7 @@ def get_lifetime_cashout_data(dataframe):
     current_year_cashouts = cashouts.loc[year_start_ts:year_end_ts]
     total_taken_in_cash_current_year = current_year_cashouts['cashamount'].sum()
 
-    return total_cashed_out_value, total_taken_in_cash, total_donated, total_taken_in_cash_current_year
+    return total_cashed_out_value, total_taken_in_cash, total_donated, total_taken_in_cash_current_year, earliest_event
 
 
 
@@ -705,16 +725,85 @@ ORDER BY time DESC
 
 
 # basic testing of the calculations on a test CSV file
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # # test the audit(dataframe) function
     # test_path = SCRIPT_PATH + os.path.sep + "CSVs" + os.path.sep + "DLS_inviter.csv"
     # test_data = pd.read_csv(test_path)
     # print(audit(test_data))
 
     # # refresh the audit queries in case it has changed.
-    refresh_athena_query()
+    # refresh_athena_query()
 
 
 
 
 
+
+
+
+
+"""
+---OVERVIEW---
+Username: {username}
+Cashout Value: {cashout_value} 
+Audited Value: {total_audited_value}
+Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
+Cashout Date: {ts1}
+Prev Cashout Date: {ts2}
+
+----BOT VERDICT----
+Audit Bot Verdict: {status}{flag_strings}
+
+----LIFETIME DATA----
+-Metadata-
+Cashout Count: {number_of_cashouts}
+Lifetime Cashouts total | cash | donated: {total_cashed_out_value} | {total_taken_in_cash} | {total_donated}
+Cash taken this year: {check_pairs['current_year_cash_taken']}
+
+-Lifetime Gameplay-
+Lifetime Livegame TPG: {lifetime_livegame_tpg}
+Lifetime Livegames played: {lifetime_n_livegames}
+Lifetime Livegame Winrate: {calc_pct(lifetime_n_livegame_wins,lifetime_n_livegames)} %
+
+-Payout Analysis-
+Address sharers:{address_sharers_str}
+---
+# of addresses (paypal): {check_pairs['number_of_addresses']}
+# of users sharing per address: {check_pairs['number_of_sharers']}
+
+-Session Analysis-
+Average Play Session (# games | length in hrs):
+{avg_games} | {avg_session_length}
+Max Play Session, hours (# games | length in hrs):
+{max_games} | {max_session_length}
+
+
+Cashout Source Breakdown:
+|- Amount = % of total won
+|-------------
+|- Mega Spins: {money_from_megaspins} = {calc_pct(money_from_megaspins, total_audited_value)}%
+|- Live Games: {money_from_livegames} = {calc_pct(money_from_livegames, total_audited_value)}%
+|- MatchUPs: {money_from_matchups} = {check_pairs['pct_matchup']}%
+|- Goals: {money_from_goals} = {calc_pct(money_from_goals, total_audited_value)}%
+|- Tournaments (won|spent|net): {money_from_tourneys}|{money_spent_on_tourneys}|{total_flow_tourneys} = {calc_pct(total_flow_tourneys, total_audited_value)}%
+|- Admin added: {money_from_admin} = {check_pairs['pct_admin']}%
+|- Week1 prize(old): {money_from_week1} = {calc_pct(money_from_week1, total_audited_value)}%
+|- Awarded (misc): {money_from_awards} = {calc_pct(money_from_awards, total_audited_value)}%
+|
+|- Amount carried into cashout (escrow): {balance_carried_forward}
+|- Amount carreid forward to next (escrow): {balance_carried_in}
+
+--- GamePlay Analysis ---
+Number of Games to Cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
+Livegame TPG: {check_pairs['livegame_tpg']}
+MatchUP TPG: {check_pairs['matchup_tpg']}
+Livegame winrate: {check_pairs['livegame_wr']} %
+MatchUP winrate: {check_pairs['matchup_wr']}%
+Top 3 players won against:
+{top3_players}
+Invited Players: {invited_players}
+Money flow between invitees (amount|%): {invited_total}|{check_pairs['invite_pct']}%\n
+# of games against Sharers: {n_games_sharers}
+Net flow against Sharers (amount|%): {sharer_total_flow} | {check_pairs['sharers_pct']}
+######################
+"""
