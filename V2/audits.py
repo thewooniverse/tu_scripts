@@ -1,7 +1,9 @@
-import os
+import os, sys
 import pandas as pd
 import numpy as np
 import datetime
+import traceback
+
 
 
 
@@ -176,8 +178,16 @@ def audit(dataframe, email_audit_results):
     response_string = f"""\n\n
 ###### SUMMARY ######
 Username: {username}
-Cashout Value: {cashout_value} 
-# games to cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
+Cashout Value: {cashout_value}
+Bot Verdict: {status}
+
+Join Date: {earliest_event_ts}
+Number of Cashouts: {number_of_cashouts}
+Lifetime Cashed Out: {total_cashed_out_value}
+Lifetime Livegames played: {lifetime_n_livegames}
+Lifetime Livegame TPG: {lifetime_livegame_tpg}
+
+Games to cashout (Total|Live|MatchUps): {n_livegames+n_matchups}|{n_livegames}|{n_matchups}
 Cashout Livegame TPG: {check_pairs['livegame_tpg']}
 Cashout MatchUP TPG: {check_pairs['matchup_tpg']}
 Cashout breakdown %:
@@ -187,15 +197,9 @@ Cashout breakdown %:
 - Tournament: {calc_pct(total_flow_tourneys, total_audited_value)}%
 - Mega Spins: {calc_pct(money_from_megaspins, total_audited_value)}%
 - Admin: {check_pairs['pct_admin']}%
-
-Lifetime Livegames played: {lifetime_n_livegames}
-Lifetime Livegame TPG: {lifetime_livegame_tpg}
-Join Date: {earliest_event_ts}
-
-----BOT VERDICT----
-Audit Bot Verdict: {status}{flag_strings}
-#####################
-
+########################
+########################
+########################
 
 ---DETAILED OVERVIEW----
 Username: {username}
@@ -204,6 +208,10 @@ Audited Value: {total_audited_value}
 Audit Date: {datetime.datetime.now().strftime("%Y/%m/%d %Y:%M %p")}
 Cashout Date: {ts1}
 Prev Cashout Date: {ts2}
+
+----BOT VERDICT----
+Audit Bot Verdict: {status}{flag_strings}
+#####################
 
 ----LIFETIME DATA----
 -Metadata-
@@ -316,9 +324,17 @@ def filter_and_order(dataframe):
     cleanup(dataframe) takes a dataframe, and returns a cleaned up version of the dataframe with relevant columns in order
     as well as filtered rows based on event types.
     """
-    dataframe = dataframe[COLUMNS]
-    dataframe = dataframe[~dataframe['type'].isin(EXCLUDED_EVENTS)]
-    return dataframe
+    try:
+        dataframe = dataframe[COLUMNS]
+        dataframe = dataframe[~dataframe['type'].isin(EXCLUDED_EVENTS)]
+        return dataframe
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        print("This is most likely caused due to csv file not having the correct columns, please make sure you are using the most up to date query in current_query.txt and try querying athena again.")
+        traceback.print_exc()  # Print detailed traceback
+        sys.exit(1)  # Exit the program with a non-zero exit code to indicate an error
+    
+
 
 
 def get_year_timestamps():
