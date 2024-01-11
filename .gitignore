@@ -6,6 +6,14 @@ __pycache__
 .pyc
 
 
+indigg_auditing_v1/provided_users.csv
+indigg_auditing_v1/audit_result.csv
+indigg_auditing_v1/validated_data.csv
+indigg_auditing_v1/invalid_accounts.csv
+igg_audit_v2/quest_completers.csv
+igg_audit_v2/results/*.csv
+
+
 #CSV folders
 V1/CSVs/
 V2/CSVs
