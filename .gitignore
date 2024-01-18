@@ -12,6 +12,8 @@ indigg_auditing_v1/validated_data.csv
 indigg_auditing_v1/invalid_accounts.csv
 igg_audit_v2/quest_completers.csv
 igg_audit_v2/results/*.csv
+indigg_auditing/*csv
+indigg_auditing/old_csvs/*csv
 
 
 #CSV folders
