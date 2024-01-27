@@ -3,7 +3,9 @@ import pandas as pd
 
 # preparing the queried usernames
 provided_df = pd.read_csv("provided_users.csv", header=1)
-query_usernames = "(" + ", ".join(f"'{username}'" for username in provided_df['Username'].to_list()) + ")"
+stripped_usernames = [username.replace("'", "") for username in provided_df['Username'].to_list()]
+
+query_usernames = "(" + ", ".join(f"'{username}'" for username in stripped_usernames) + ")"
 pyperclip.copy(query_usernames)
 print(len(provided_df['Username'].to_list()))
 provided_df = provided_df['Username']
@@ -37,6 +39,18 @@ invalid_accounts.to_csv("invalid_accounts.csv")
 print(result.loc[result['completed'].isna()])
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 ## mapping inviters
 inviter_df = pd.read_csv("inviters.csv")
 inviter_mapped_df = pd.merge(result, inviter_df, on='Username', how='left')
@@ -45,4 +59,9 @@ unique_inviters = inviter_mapped_df['inviterusername'].unique()
 
 uinv_df = pd.DataFrame({'unqiue_inviters': unique_inviters})
 uinv_df.to_csv("unique_inviters.csv")
+
+
+
+
+
 
