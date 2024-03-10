@@ -15,6 +15,7 @@ igg_audit_v2/results/*.csv
 indigg_auditing/*csv
 indigg_auditing/old_csvs/*csv
 
+indigg_auditing_v3/*.csv
 
 #CSV folders
 V1/CSVs/

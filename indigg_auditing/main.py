@@ -9,7 +9,7 @@ query_usernames = "(" + ", ".join(f"'{username}'" for username in stripped_usern
 pyperclip.copy(query_usernames)
 print(len(provided_df['Username'].to_list()))
 provided_df = provided_df['Username']
-
+print(provided_df)
 
 # loading the audited results
 audited_df = pd.read_csv("audit_result.csv")
