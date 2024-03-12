@@ -30,12 +30,13 @@ query_username_full_list = "(" + ", ".join(f"'{username}'" for username in uniqu
 filter_2_query = f"""
 /* IGG Filter 2: take out all users that have registered before we launched in India */
 /* This is achieved by getting a list of all users that have incurred an event BEFORE the date we launched in India */
-/* Such that if ('SAHILINDIGG1', 'Vivek_Indigg', 'Awoo') were entered as list of users, only Awoo would have event counts, thus eliminating Awoo */
+/* Such that if ('SAHILINDIGG1', 'Vivek_Indigg', 'Awoo') were entered as list of users, only Awoo would have event counts as he played long before global launch, thus eliminating Awoo */\
+
 
 SELECT username, COUNT(*) as event_count
 FROM "productiondbcatalogs-iv2e77bcwp31".production_events_etl
 WHERE username IN {query_username_full_list}
-AND time < DATE '2023-10-08'
+AND time < DATE '2023-10-24' /* This is our official global launch announcement date */
 GROUP BY username;
 """
 with open ('filter_2_query.txt', 'w') as f2_wf:
